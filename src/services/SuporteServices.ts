@@ -85,7 +85,7 @@ export class SuporteServices {
         const client = await pool.connect();
         try {
             const idSup = await this.consultaMatricula(matSuporte);
-            const checkQuery = 'SELECT pk_id_prestador_suporte, dt_inicio_suporte, hora_inicio_suporte FROM suporte.tb_chamado_suporte WHERE id_suporte = $1 FOR UPDATE';
+            const checkQuery = 'SELECT pk_id_prestador_suporte, dt_inicio_suporte, hora_inicio_suporte FROM suporte.tb_chamado_suporte WHERE id_suporte = $1';
             const checkResult = await client.query(checkQuery, [idSuporte]);
             const chamado = checkResult.rows[0];
             if (chamado.pk_id_prestador_suporte || chamado.dt_inicio_suporte || chamado.hora_inicio_suporte) {
@@ -94,7 +94,13 @@ export class SuporteServices {
             await client.query('BEGIN');
             await client.query('update suporte.tb_chamado_suporte set pk_id_prestador_suporte = $1, dt_inicio_suporte = $2, hora_inicio_suporte = $3, tempo_aguardando_suporte = $4 where id_suporte =$5',[ idSup.id_usuario, dtSuporte, hrSuporte, tpAguardado,  idSuporte]);
             await client.query('COMMIT');
-            return idSuporte;
+            const checkSuport = 'SELECT A.ID_SUPORTE, B.MATRICULA, A.DT_INICIO_SUPORTE, A.HORA_INICIO_SUPORTE FROM SUPORTE.TB_CHAMADO_SUPORTE A JOIN SUPORTE.TB_LOGIN_SUPORTE B ON A.PK_ID_PRESTADOR_SUPORTE = B.ID_USUARIO WHERE A.ID_SUPORTE = $1';
+            const result = await client.query(checkSuport, [idSuporte]);
+            const resultado = result.rows[0];
+            if (!resultado.id_suporte || !resultado.dt_inicio_suporte || !resultado.hora_inicio_suporte || !resultado.matricula) {
+                throw new Error('Chamado não localizado');
+            }
+            return resultado;
         } catch (e) {
             await client.query('ROLLBACK');
             console.error('Erro ao atualizar o suporte: ', e);

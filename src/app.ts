@@ -39,7 +39,6 @@ servidor.listen(port, '0.0.0.0', () => {
 });
 
 io.on('connection', (socket) => {
-    console.log(`Novo cliente conectado ${socket.id}`);
     socket.on('login_chamado', (data, callback) => {
         socketMiddleware('login')(data, socket.id, (result) => {
             callback(result);
@@ -83,8 +82,9 @@ io.on('connection', (socket) => {
             callback(result);
         });
     });
-    socket.on('atender_chamado', (data) => {
+    socket.on('atender_chamado', (data, callback) => {
         socketMiddleware('atenderSuporte')(data, socket.id, (result) => {
+            callback(result);
             io.emit('atualizar_suporte', { action: 'atender', chamado: result });
         });
     });
@@ -94,10 +94,7 @@ io.on('connection', (socket) => {
         });
     });
     socket.on('disconnect', () => {
-        console.log(`Cliente desconectado: ${socket.id}`);
-        socketMiddleware('logoff')('', socket.id, (result) => {
-            io.emit('atualizar_dados', { action: 'deslogado', login: result });
-        });
+        //
     });
 });
 
