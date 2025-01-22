@@ -35,8 +35,8 @@ export class SuporteController {
         const idSup = parseInt(idSuporte);
         const matSup = parseInt(matSuporte);
         try {
-            const id_suporte = await SuporteServices.atenderSuporte(idSup, matSup, dtSuporte, hrSuporte, tpAguardado );
-            res.status(200).json({ message: 'Suporte atendido com sucesso', id_suporte});
+            const suporte = await SuporteServices.atenderSuporte(idSup, matSup, dtSuporte, hrSuporte, tpAguardado );
+            res.status(200).json({ message: 'Suporte atendido com sucesso', suporte});
         } catch (error) {
             if (error instanceof Error) {
                 res.status(400).json({ message: error.message });
