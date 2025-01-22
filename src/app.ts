@@ -3,7 +3,6 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import userRoutes from './routes/userRoutes';
 import filasRoutes from './routes/FilasRoutes';
 import pool from './database/db';
 import { socketMiddleware } from './middlewares/socketMiddleware';
@@ -29,7 +28,6 @@ app.use(express.json());
 app.use(bodyParser.json());
 let poolEnded = false;
 
-app.use('/api/users', userRoutes);
 app.use('/api/filas', filasRoutes);
 app.get('/', (req: Request, res: Response) => {
     res.send(`Bem vindo à API`);
@@ -41,15 +39,37 @@ servidor.listen(port, '0.0.0.0', () => {
 });
 
 io.on('connection', (socket) => {
-    console.log('Novo cliente conectado');
+    console.log(`Novo cliente conectado ${socket.id}`);
+    socket.on('login_chamado', (data, callback) => {
+        socketMiddleware('login')(data, socket.id, (result) => {
+            callback(result);
+            io.emit('atualizar_dados', { action: 'logado', login: result });
+        });
+    });
+    socket.on('create', (data, callback) => {
+        socketMiddleware('create')(data, socket.id, (result) => {
+            callback(result);
+        });
+    });
+    socket.on('update', (data, callback) => {
+        socketMiddleware('update')(data, socket.id, (result) => {
+            callback(result);
+        });
+    });
+    socket.on('logoff', (callback) => {
+        socketMiddleware('logoff')('', socket.id, (result) => {
+            callback(result);
+            io.emit('atualizar_dados', { action: 'deslogado', login: result });
+        });
+    });
     socket.on('abrir_chamado', (data, callback) => {
-        socketMiddleware('solicitarSuporte')(data, (result) => {
+        socketMiddleware('solicitarSuporte')(data, socket.id, (result) => {
             callback(result);
             io.emit('atualizar_suporte', { action: 'abrir', chamado: result });
         });
     });
     socket.on('cancelar_chamado', (data, callback) => {
-        socketMiddleware('cancelarSuporte')(data, (result) => {
+        socketMiddleware('cancelarSuporte')(data, socket.id, (result) => {
             callback(result);
             io.emit('atualizar_suporte', { action: 'cancelar', chamado: result });
         });
@@ -59,24 +79,28 @@ io.on('connection', (socket) => {
             console.error('Callback não é uma função');
             return;
         }
-        socketMiddleware('consultarSuporte')('', (result) => {
+        socketMiddleware('consultarSuporte')('', socket.id, (result) => {
             callback(result);
         });
     });
     socket.on('atender_chamado', (data) => {
-        socketMiddleware('atenderSuporte')(data, (result) => {
+        socketMiddleware('atenderSuporte')(data, socket.id, (result) => {
             io.emit('atualizar_suporte', { action: 'atender', chamado: result });
         });
     });
     socket.on('finalizar_chamado', (data) => {
-        socketMiddleware('finalizarSuporte')(data, (result)=> {
-            io.emit('atualizar_suporte', {action: 'finalizar', chamado: result});
+        socketMiddleware('finalizarSuporte')(data, socket.id, (result) => {
+            io.emit('atualizar_suporte', { action: 'finalizar', chamado: result });
         });
     });
     socket.on('disconnect', () => {
-        console.log('Cliente desconectado');
+        console.log(`Cliente desconectado: ${socket.id}`);
+        socketMiddleware('logoff')('', socket.id, (result) => {
+            io.emit('atualizar_dados', { action: 'deslogado', login: result });
+        });
     });
 });
+
 const shutdownPool = async () => {
     if (!poolEnded) {
         try {
