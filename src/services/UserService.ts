@@ -3,6 +3,40 @@ import bcrypt from 'bcryptjs';
 import { UserModel } from '../models/UserModels';
 
 export class UserService {
+    public static async login_suporte( id_secao:string, id_usuario:number  ): Promise<void> {
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            await client.query('INSERT INTO suporte.tb_login_logoff_suporte (id_secao, pk_id_usuario, dt_login, hr_login, status) VALUES($1, $2, now()::date, now()::time, 1) ', [id_secao, id_usuario]);
+            await client.query('COMMIT');
+        } catch (e) {
+            await client.query('ROLLBACK');
+            console.error('Erro na vinculação do login:', e);
+            throw e;
+        }finally {
+            client.release();
+        }
+    }
+    public static async deslog_suporte( id_secao:string  ): Promise<any> {
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            await client.query('update suporte.tb_login_logoff_suporte  set status = 0, hr_logoff=  now()::time where id_secao = $1  ', [id_secao]);
+            await client.query('COMMIT');
+            const result = await client.query('SELECT pk_id_usuario FROM suporte.tb_login_logoff_suporte where status = 0 and id_secao = $1 ',[id_secao]);
+            if (result.rows.length === 0) {
+                throw new Error('seção não encontrado');
+            } 
+            const secao = result.rows[0];
+            return secao;
+        } catch (e) {
+            await client.query('ROLLBACK');
+            console.error('Erro na vinculação do logoff:', e);
+            throw e;
+        }finally {
+            client.release();
+        }
+    }
     public static async buscarMatricula(matricula:number): Promise<any> {
         try {
             const res = await pool.query('select matricula, login, nome, co_funcao from public.cp_jorginho_empregados() where matricula = $1', [matricula]);
@@ -25,7 +59,7 @@ export class UserService {
             throw e;
         }
     }
-    public static async autenticacao(matricula: number, password: string): Promise<any> {
+    public static async autenticacao(matricula: number, password: string, socketId:string): Promise<any> {
         try {
             const res = await pool.query('SELECT id_usuario, matricula, login, nome, codfuncao, password FROM suporte.tb_login_suporte WHERE matricula = $1', [matricula]);
             if (res.rows.length === 0) {
@@ -46,6 +80,7 @@ export class UserService {
                 nome: user.nome,
                 codfuncao: user.codfuncao
             };
+            await this.login_suporte(socketId, user.id_usuario);
             return userData;
         } catch (e) {
             console.error('Erro na autenticação:', e);

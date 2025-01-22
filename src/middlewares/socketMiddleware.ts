@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
 import { routeMap } from '../routes/SuporteRoutes';
+import { userRoute } from '../routes/userRoutes';
 
 export const socketMiddleware = (routeName: string) => {
-    return (data: any, callback: (result: any) => void) => {
-        const req = { body: data } as Request;
+    return (data: any, socketId: string, callback: (result: any) => void) => {
+        const req = { body: { ...data, socketId } } as Request;
         const res = {
             status: (statusCode: number) => ({
                 json: (result: any) => {
@@ -13,8 +14,7 @@ export const socketMiddleware = (routeName: string) => {
                 }
             })
         } as Response;
-
-        const routeHandler = routeMap[routeName];
+        const routeHandler = routeMap[routeName] || userRoute[routeName];
         if (routeHandler) {
             routeHandler(req, res);
         } else {
