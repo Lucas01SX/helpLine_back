@@ -70,4 +70,16 @@ export class SuporteController {
             }
         }
     }
+    public async consultarSuporteGestao(req: Request, res: Response): Promise<void> {
+        try {
+            const consulta = await SuporteServices.consultaChamadosGestao();
+            res.status(200).json({ message: 'Dados de consulta atualizados', consulta });
+        } catch (error) {
+            if (error instanceof Error) {
+                res.status(400).json({ message: error.message });
+            } else {
+                res.status(500).json({ message: 'Erro desconhecido na controller', error });
+            }
+        }
+    }
 }
