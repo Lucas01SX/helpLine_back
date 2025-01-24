@@ -88,6 +88,12 @@ io.on('connection', (socket) => {
             io.emit('atualizar_suporte', { action: 'atender', chamado: result });
         });
     });
+    socket.on('atualizar_manager', (callback) => {
+        socketMiddleware('atualizarSuporteManager')('',socket.id, (result) => {
+            callback(result);
+            io.emit('atualizar_suporte', { action: 'consulta_manager', chamado: result });
+        });
+    });
     socket.on('finalizar_chamado', (data) => {
         socketMiddleware('finalizarSuporte')(data, socket.id, (result) => {
             io.emit('atualizar_suporte', { action: 'finalizar', chamado: result });

@@ -10,6 +10,7 @@ const routeMap: { [key: string]: (req: express.Request, res: express.Response) =
     cancelarSuporte: (req, res) => suporteController.cancelarSuporte(req, res),
     consultarSuporte: (req, res) => suporteController.consultarSuporte(req, res),
     finalizarSuporte: (req, res) => suporteController.finalizarSuporte(req, res),
+    atualizarSuporteManager: (req, res) => suporteController.consultarSuporte(req, res),
 };
 
 export { router as suporteRoutes, routeMap };

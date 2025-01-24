@@ -136,4 +136,14 @@ export class SuporteServices {
             client.release();
         }
     }
+    public static async consultaChamadosGestao(): Promise<void | any> {
+        try {
+            const consulta = await pool.query('select a.id_suporte, c.login, c.nome, a.hora_solicitacao_suporte, a.mcdu, b.fila, a.hora_inicio_suporte, d.nome nome_suporte from suporte.tb_chamado_suporte a join trafego.tb_anexo1g b on a.mcdu = b.mcdu join suporte.tb_login_suporte c on a.pk_id_solicitante = c.id_usuario left join suporte.tb_login_suporte d on a.pk_id_prestador_suporte = d.id_usuario where a.cancelar_suporte <> true and a.encerrado_por isnull group by a.id_suporte, c.login, c.nome, a.hora_solicitacao_suporte, a.mcdu, b.fila, a.hora_inicio_suporte, d.nome');
+            return consulta.rows;
+        } catch (e) {
+            console.error('Erro ao localizar dados de suporte: ', e);
+            throw e;
+        } 
+    }
+
 }
