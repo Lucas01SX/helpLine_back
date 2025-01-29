@@ -9,14 +9,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FilasController = void 0;
-const FilasServices_1 = require("../services/FilasServices");
-class FilasController {
-    filasGerais(req, res) {
+exports.TokenController = void 0;
+const TokenService_1 = require("../services/TokenService");
+class TokenController {
+    atualizarToken(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
+            const { token } = req.body;
             try {
-                const filas = yield FilasServices_1.FilasService.filasGerais();
-                res.status(200).json({ filas });
+                TokenService_1.TokenService.atualizarToken(token);
+                res.status(200).json({ message: 'Token atualizado com sucesso!' });
             }
             catch (error) {
                 if (error instanceof Error) {
@@ -28,13 +29,11 @@ class FilasController {
             }
         });
     }
-    consultaSkill(req, res) {
+    verificarTokens(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const { matricula } = req.body;
-                const mat = parseInt(matricula);
-                const filas = yield FilasServices_1.FilasService.consultaSkill(mat);
-                res.status(200).json({ message: 'Consulta realizada com sucesso', filas });
+                TokenService_1.TokenService.verificarTokens();
+                res.status(200).json({ message: 'Tokens atualizados com sucesso!' });
             }
             catch (error) {
                 if (error instanceof Error) {
@@ -47,4 +46,4 @@ class FilasController {
         });
     }
 }
-exports.FilasController = FilasController;
+exports.TokenController = TokenController;

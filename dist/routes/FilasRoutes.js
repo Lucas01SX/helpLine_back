@@ -8,4 +8,5 @@ const FilasController_1 = require("../controllers/FilasController");
 const filasController = new FilasController_1.FilasController();
 const router = express_1.default.Router();
 router.get('/gerais', (req, res) => filasController.filasGerais(req, res));
+router.post('/consulta/skill', (req, res) => filasController.consultaSkill(req, res));
 exports.default = router;

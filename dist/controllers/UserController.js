@@ -71,5 +71,38 @@ class UserController {
             }
         });
     }
+    deslogar(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { token } = req.body;
+            try {
+                const logoff = yield UserService_1.UserService.deslog_suporte(token);
+                res.status(200).json({ message: 'Logoff realizado', logoff });
+            }
+            catch (error) {
+                if (error instanceof Error) {
+                    res.status(400).json({ message: error.message });
+                }
+                else {
+                    res.status(500).json({ message: 'Erro desconhecido na controller', error });
+                }
+            }
+        });
+    }
+    usuarioslogados(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const logados = yield UserService_1.UserService.usuariosLogados();
+                res.status(200).json({ message: 'Usuários logados', logados });
+            }
+            catch (error) {
+                if (error instanceof Error) {
+                    res.status(400).json({ message: error.message });
+                }
+                else {
+                    res.status(500).json({ message: 'Erro desconhecido na controller', error });
+                }
+            }
+        });
+    }
 }
 exports.UserController = UserController;

@@ -2,9 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.socketMiddleware = void 0;
 const SuporteRoutes_1 = require("../routes/SuporteRoutes");
+const userRoutes_1 = require("../routes/userRoutes");
 const socketMiddleware = (routeName) => {
     return (data, callback) => {
-        const req = { body: data };
+        const req = { body: Object.assign({}, data) };
         const res = {
             status: (statusCode) => ({
                 json: (result) => {
@@ -14,7 +15,7 @@ const socketMiddleware = (routeName) => {
                 }
             })
         };
-        const routeHandler = SuporteRoutes_1.routeMap[routeName];
+        const routeHandler = SuporteRoutes_1.routeMap[routeName] || userRoutes_1.userRoute[routeName];
         if (routeHandler) {
             routeHandler(req, res);
         }

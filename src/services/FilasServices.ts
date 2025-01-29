@@ -4,7 +4,7 @@ import { FilasModels } from "../models/FilasModel";
 export class FilasService {
     public static async filasGerais(): Promise<any> {
         try {
-            const res = await pool.query(`select distinct segmento, mcdu, fila from trafego.tb_anexo1g where status  <> 'Desativa' and current_date between data_inicio and data_fim order by fila asc`);
+            const res = await pool.query(`select distinct segmento, mcdu, fila from trafego.tb_anexo1g where status <> 'Desativa' and current_date between data_inicio and data_fim and segmento not in('SERVICOS.CAIXA','DESCONEXAO') and fila not in ('2A_NIVEL','WHATSAPP') order by fila asc`);
             const filas = res.rows;
             return filas;
         } catch (e) {

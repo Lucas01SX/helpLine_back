@@ -35,8 +35,8 @@ class SuporteController {
             const { idCancelamento } = req.body;
             const id_cancelamento = parseInt(idCancelamento);
             try {
-                const cancelar = yield SuporteServices_1.SuporteServices.cancelar(id_cancelamento);
-                res.status(200).json({ cancelar });
+                const id_suporte = yield SuporteServices_1.SuporteServices.cancelar(id_cancelamento);
+                res.status(200).json({ message: "Cancelamento realizado com sucesso", id_suporte });
             }
             catch (error) {
                 if (error instanceof Error) {
@@ -50,10 +50,12 @@ class SuporteController {
     }
     atenderSuporte(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
-            const { idSuporte, idOperador } = req.body;
+            const { idSuporte, matSuporte, dtSuporte, hrSuporte, tpAguardado } = req.body;
+            const idSup = parseInt(idSuporte);
+            const matSup = parseInt(matSuporte);
             try {
-                const atendimento = yield SuporteServices_1.SuporteServices.atenderSuporte(idSuporte, idOperador);
-                res.status(200).json({ message: 'Suporte atendido com sucesso', atendimento });
+                const suporte = yield SuporteServices_1.SuporteServices.atenderSuporte(idSup, matSup, dtSuporte, hrSuporte, tpAguardado);
+                res.status(200).json({ message: 'Suporte atendido com sucesso', suporte });
             }
             catch (error) {
                 if (error instanceof Error) {
@@ -69,6 +71,39 @@ class SuporteController {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const consulta = yield SuporteServices_1.SuporteServices.consultaSuporte();
+                res.status(200).json({ message: 'Dados de consulta atualizados', consulta });
+            }
+            catch (error) {
+                if (error instanceof Error) {
+                    res.status(400).json({ message: error.message });
+                }
+                else {
+                    res.status(500).json({ message: 'Erro desconhecido na controller', error });
+                }
+            }
+        });
+    }
+    finalizarSuporte(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { idSuporte, matSuporte, hrSuporte } = req.body;
+            try {
+                const id_suporte = yield SuporteServices_1.SuporteServices.finalizarSuporte(hrSuporte, matSuporte, idSuporte);
+                res.status(200).json({ message: 'Suporte finalizado com sucesso', id_suporte });
+            }
+            catch (error) {
+                if (error instanceof Error) {
+                    res.status(400).json({ message: error.message });
+                }
+                else {
+                    res.status(500).json({ message: 'Erro desconhecido na controller', error });
+                }
+            }
+        });
+    }
+    consultarSuporteGestao(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const consulta = yield SuporteServices_1.SuporteServices.consultaChamadosGestao();
                 res.status(200).json({ message: 'Dados de consulta atualizados', consulta });
             }
             catch (error) {

@@ -14,8 +14,60 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserService = void 0;
 const db_1 = __importDefault(require("../database/db"));
+const TokenService_1 = require("./TokenService");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 class UserService {
+    static login_suporte(id_secao, id_usuario) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const client = yield db_1.default.connect();
+            try {
+                const dados = yield client.query('select id_login, id_secao, pk_id_usuario, dt_login, hr_login, hr_logoff, status from suporte.tb_login_logoff_suporte where dt_login = current_date and pk_id_usuario = $1 and status = 1 and hr_logoff isnull', [id_usuario]);
+                if (dados.rows.length === 0) {
+                    yield client.query('BEGIN');
+                    yield client.query('INSERT INTO suporte.tb_login_logoff_suporte (id_secao, pk_id_usuario, dt_login, hr_login, status) VALUES($1, $2, now()::date, now()::time, 1) ', [id_secao, id_usuario]);
+                    yield client.query('COMMIT');
+                    return 'Cadastro realizado com sucesso!';
+                }
+                else {
+                    const res = dados.rows[0];
+                    return res.id_secao;
+                }
+            }
+            catch (e) {
+                yield client.query('ROLLBACK');
+                console.error('Erro na vinculação do login:', e);
+                throw e;
+            }
+            finally {
+                client.release();
+            }
+        });
+    }
+    static deslog_suporte(id_secao) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const client = yield db_1.default.connect();
+            try {
+                yield client.query('BEGIN');
+                yield client.query('update suporte.tb_login_logoff_suporte  set status = 0, hr_logoff =  now()::time where id_secao = $1  ', [id_secao]);
+                yield client.query('COMMIT');
+                const result = yield client.query('SELECT pk_id_usuario FROM suporte.tb_login_logoff_suporte where status = 0 and id_secao = $1 ', [id_secao]);
+                if (result.rows.length === 0) {
+                    throw new Error('seção não encontrado');
+                }
+                const secao = result.rows[0];
+                return secao;
+            }
+            catch (e) {
+                yield client.query('ROLLBACK');
+                console.error('Erro na vinculação do logoff:', e);
+                throw e;
+            }
+            finally {
+                client.release();
+            }
+        });
+    }
     static buscarMatricula(matricula) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -63,7 +115,18 @@ class UserService {
                     nome: user.nome,
                     codfuncao: user.codfuncao
                 };
-                return userData;
+                const secretKey = '79F49A2A9A1C99C52E655346CB579';
+                const token = jsonwebtoken_1.default.sign({ userId: user.id_usuario }, secretKey, { expiresIn: '1d' });
+                const suporte = yield this.login_suporte(token, user.id_usuario);
+                console.log(suporte);
+                if (suporte === 'Cadastro realizado com sucesso!') {
+                    TokenService_1.TokenService.atualizarToken(token);
+                    return Object.assign(Object.assign({}, userData), { token });
+                }
+                else {
+                    TokenService_1.TokenService.atualizarToken(suporte);
+                    return Object.assign(Object.assign({}, userData), { suporte });
+                }
             }
             catch (e) {
                 console.error('Erro na autenticação:', e);
@@ -109,6 +172,18 @@ class UserService {
             }
             finally {
                 client.release();
+            }
+        });
+    }
+    static usuariosLogados() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const result = yield db_1.default.query('select b.login, b.nome from suporte.tb_login_logoff_suporte a join suporte.tb_login_suporte b on a.pk_id_usuario = b.id_usuario where a.dt_login = current_date and a.status = 1');
+                return result.rows;
+            }
+            catch (e) {
+                console.error('Erro na autenticação:', e);
+                throw e;
             }
         });
     }
