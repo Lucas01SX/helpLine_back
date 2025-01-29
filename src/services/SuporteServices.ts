@@ -1,6 +1,9 @@
 import { homedir } from 'os';
 import pool from '../database/db';
 import { RequestsSuport } from './RequestSuporte';
+import { getCachedData  } from './cacheService';
+import { CachedData } from '../models/Cache';
+
 
 export class SuporteServices {
     public static async consultaMatricula(matricula:number): Promise<any> {
@@ -110,15 +113,12 @@ export class SuporteServices {
         }
     }
     public static async consultaSuporte(): Promise<any> {
-        const client = await pool.connect();
         try {
-            const consultaSuporte = await client.query('select a.id_suporte, c.login, a.dt_solicitacao_suporte, a.hora_solicitacao_suporte, b.fila from suporte.tb_chamado_suporte a inner join trafego.tb_anexo1g b on a.mcdu = b.mcdu inner join suporte.tb_login_suporte c on a.pk_id_solicitante = c.id_usuario where a.cancelar_suporte <> true and a.pk_id_prestador_suporte is null group by a.id_suporte, a.hora_solicitacao_suporte, b.fila, c.login order by id_suporte asc');
+            const consultaSuporte = await pool.query('select a.id_suporte, c.login, a.dt_solicitacao_suporte, a.hora_solicitacao_suporte, b.fila from suporte.tb_chamado_suporte a inner join trafego.tb_anexo1g b on a.mcdu = b.mcdu inner join suporte.tb_login_suporte c on a.pk_id_solicitante = c.id_usuario where a.cancelar_suporte <> true and a.pk_id_prestador_suporte is null group by a.id_suporte, a.hora_solicitacao_suporte, b.fila, c.login order by id_suporte asc');
             return consultaSuporte.rows;
         } catch (e) {
             console.error('Erro ao atualizar o suporte: ', e);
             throw e;
-        } finally {
-            client.release();
         }
     }
     public static async finalizarSuporte(horaFimSuporte:string, matricula:string, idSuporte:number): Promise<void | any> {
@@ -138,8 +138,21 @@ export class SuporteServices {
     }
     public static async consultaChamadosGestao(): Promise<void | any> {
         try {
-            const consulta = await pool.query('select a.id_suporte, c.login, c.nome, a.hora_solicitacao_suporte, a.mcdu, b.fila, a.hora_inicio_suporte, d.nome nome_suporte from suporte.tb_chamado_suporte a join trafego.tb_anexo1g b on a.mcdu = b.mcdu join suporte.tb_login_suporte c on a.pk_id_solicitante = c.id_usuario left join suporte.tb_login_suporte d on a.pk_id_prestador_suporte = d.id_usuario where a.cancelar_suporte <> true and a.encerrado_por isnull group by a.id_suporte, c.login, c.nome, a.hora_solicitacao_suporte, a.mcdu, b.fila, a.hora_inicio_suporte, d.nome');
-            return consulta.rows;
+            const cp: CachedData[] = await getCachedData();
+            if (cp) {
+                const consulta = await pool.query('select a.id_suporte, c.matricula, c.login, c.nome, a.hora_solicitacao_suporte, a.mcdu, b.fila, a.hora_inicio_suporte, a.tempo_aguardando_suporte, d.nome nome_suporte from suporte.tb_chamado_suporte a join trafego.tb_anexo1g b on a.mcdu = b.mcdu join suporte.tb_login_suporte c on a.pk_id_solicitante = c.id_usuario left join suporte.tb_login_suporte d on a.pk_id_prestador_suporte = d.id_usuario where a.cancelar_suporte <> true and a.encerrado_por isnull and a.dt_solicitacao_suporte = current_date group by a.id_suporte, c.login, c.nome, a.hora_solicitacao_suporte, a.mcdu, b.fila, a.hora_inicio_suporte, a.tempo_aguardando_suporte, d.nome,c.matricula;');
+                const data = consulta.rows;
+                const dataComGestor = data.map(item => {
+                    const gestor = cp.find(cpItem => cpItem.matricula === item.matricula);
+                    return {
+                        ...item,
+                        nome_super: gestor ? gestor.nome_super : null
+                    };
+                });
+                return dataComGestor;
+            } else {
+                throw new Error('Dados não encontrados na consulta do CP');
+            }
         } catch (e) {
             console.error('Erro ao localizar dados de suporte: ', e);
             throw e;

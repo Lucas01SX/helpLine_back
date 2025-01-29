@@ -18,13 +18,36 @@ const body_parser_1 = __importDefault(require("body-parser"));
 const cors_1 = __importDefault(require("cors"));
 const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
-const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 const FilasRoutes_1 = __importDefault(require("./routes/FilasRoutes"));
 const db_1 = __importDefault(require("./database/db"));
 const socketMiddleware_1 = require("./middlewares/socketMiddleware");
+const cacheService_1 = require("./services/cacheService");
+const updateInterval = 60 * 60 * 1000;
+const port = 3000;
 const app = (0, express_1.default)();
 exports.app = app;
 const servidor = http_1.default.createServer(app);
+const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        yield (0, cacheService_1.updateCache)();
+        console.log('Cache atualizado com sucesso na inicialização');
+    }
+    catch (err) {
+        console.error('Erro ao atualizar o cache na inicialização:', err);
+    }
+    setInterval(() => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            yield (0, cacheService_1.updateCache)();
+            console.log('Cache atualizado com sucesso');
+        }
+        catch (err) {
+            console.error('Erro ao atualizar o cache:', err);
+        }
+    }), updateInterval);
+    servidor.listen(port, '0.0.0.0', () => {
+        console.log(`Servidor rodando na porta ${port}`);
+    });
+});
 app.use((0, cors_1.default)({
     origin: '*',
     methods: ['GET', 'POST'],
@@ -42,17 +65,32 @@ const io = new socket_io_1.Server(servidor, {
 app.use(express_1.default.json());
 app.use(body_parser_1.default.json());
 let poolEnded = false;
-app.use('/api/users', userRoutes_1.default);
 app.use('/api/filas', FilasRoutes_1.default);
 app.get('/', (req, res) => {
     res.send(`Bem vindo à API`);
 });
-const port = 3000;
-servidor.listen(port, '0.0.0.0', () => {
-    console.log(`Servidor rodando na porta ${port}`);
-});
 io.on('connection', (socket) => {
-    console.log('Novo cliente conectado');
+    socket.on('login_chamado', (data, callback) => {
+        (0, socketMiddleware_1.socketMiddleware)('login')(data, (result) => {
+            const { token, login, nome } = result;
+            callback(Object.assign(Object.assign({}, result), { token }));
+        });
+    });
+    socket.on('create', (data, callback) => {
+        (0, socketMiddleware_1.socketMiddleware)('create')(data, (result) => {
+            callback(result);
+        });
+    });
+    socket.on('update', (data, callback) => {
+        (0, socketMiddleware_1.socketMiddleware)('update')(data, (result) => {
+            callback(result);
+        });
+    });
+    socket.on('logoff', (data, callback) => {
+        (0, socketMiddleware_1.socketMiddleware)('logoff')(data, (result) => {
+            callback(result);
+        });
+    });
     socket.on('abrir_chamado', (data, callback) => {
         (0, socketMiddleware_1.socketMiddleware)('solicitarSuporte')(data, (result) => {
             callback(result);
@@ -74,10 +112,48 @@ io.on('connection', (socket) => {
             callback(result);
         });
     });
-    socket.on('atender_chamado', (0, socketMiddleware_1.socketMiddleware)('atenderSuporte'));
-    socket.on('disconnect', () => {
-        console.log('Cliente desconectado');
+    socket.on('atender_chamado', (data, callback) => {
+        (0, socketMiddleware_1.socketMiddleware)('atenderSuporte')(data, (result) => {
+            callback(result);
+            io.emit('atualizar_suporte', { action: 'atender', chamado: result });
+        });
     });
+    socket.on('finalizar_chamado', (data) => {
+        (0, socketMiddleware_1.socketMiddleware)('finalizarSuporte')(data, (result) => {
+            io.emit('atualizar_suporte', { action: 'finalizar', chamado: result });
+        });
+    });
+    socket.on('atualizar_manager', (callback) => {
+        (0, socketMiddleware_1.socketMiddleware)('atualizarSuporteManager')('', (result) => {
+            callback(result);
+            io.emit('atualizar_suporte', { action: 'consulta_manager', chamado: result });
+        });
+    });
+    socket.on('consultar_logados', (callback) => {
+        (0, socketMiddleware_1.socketMiddleware)('logados')('', (result) => {
+            callback(result);
+        });
+    });
+    socket.on('atualizar_token', (data, callback) => {
+        (0, socketMiddleware_1.socketMiddleware)('atualizarToken')(data, (result) => {
+            callback(result);
+        });
+    });
+    socket.on('disconnect', () => {
+        //
+    });
+    setInterval(() => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            (0, socketMiddleware_1.socketMiddleware)('verificarToken')({}, (result) => {
+                (0, socketMiddleware_1.socketMiddleware)('atualizarSuporteManager')('', (result) => {
+                    io.emit('atualizar_suporte', { action: 'consulta_manager', chamado: result });
+                });
+            });
+        }
+        catch (err) {
+            console.error('Erro ao verificar tokens:', err);
+        }
+    }), 5 * 60 * 1000);
 });
 const shutdownPool = () => __awaiter(void 0, void 0, void 0, function* () {
     if (!poolEnded) {
@@ -105,3 +181,4 @@ const gracefulShutdown = () => {
 };
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
+startServer();

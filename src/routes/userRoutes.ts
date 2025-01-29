@@ -9,6 +9,8 @@ const userRoute: { [key: string]: (req: express.Request, res: express.Response) 
     create: (req, res) => userController.criarUsuario(req, res),
     update: (req, res) => userController.atualizarSenha(req, res),
     logoff: (req, res) => userController.deslogar(req, res),
+    logados: (req, res) => userController.usuarioslogados(req, res),
+    reset: (req, res) => userController.reset(req, res),
 };
 
 

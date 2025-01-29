@@ -6,15 +6,39 @@ import { Server as SocketIOServer } from 'socket.io';
 import filasRoutes from './routes/FilasRoutes';
 import pool from './database/db';
 import { socketMiddleware } from './middlewares/socketMiddleware';
+import { updateCache } from './services/cacheService';
 
+const updateInterval = 60 * 60 * 1000;
+const port = 3000;
 const app = express();
 const servidor = http.createServer(app);
+
+const startServer = async () => {
+    try {
+        await updateCache();
+        console.log('Cache atualizado com sucesso na inicialização');
+    } catch (err) {
+        console.error('Erro ao atualizar o cache na inicialização:', err);
+    }
+    setInterval(async () => {
+        try {
+            await updateCache();
+            console.log('Cache atualizado com sucesso');
+        } catch (err) {
+            console.error('Erro ao atualizar o cache:', err);
+        }
+    }, updateInterval);
+    servidor.listen(port, '0.0.0.0', () => {
+        console.log(`Servidor rodando na porta ${port}`);
+    });
+};
 
 app.use(cors({
     origin: '*', 
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'],
 }));
+
 const io = new SocketIOServer(servidor, {
     path:'/socket.io',
     cors: {
@@ -24,6 +48,7 @@ const io = new SocketIOServer(servidor, {
         allowedHeaders: ['Content-Type'],
     }
 });
+
 app.use(express.json());
 app.use(bodyParser.json());
 let poolEnded = false;
@@ -33,42 +58,41 @@ app.get('/', (req: Request, res: Response) => {
     res.send(`Bem vindo à API`);
 });
 
-const port = 3000;
-servidor.listen(port, '0.0.0.0', () => {
-    console.log(`Servidor rodando na porta ${port}`);
-});
-
 io.on('connection', (socket) => {
     socket.on('login_chamado', (data, callback) => {
-        socketMiddleware('login')(data, socket.id, (result) => {
-            callback(result);
-            io.emit('atualizar_dados', { action: 'logado', login: result });
+        socketMiddleware('login')(data, (result) => {
+            const { token, login, nome  } = result; 
+            callback({...result, token});
         });
     });
     socket.on('create', (data, callback) => {
-        socketMiddleware('create')(data, socket.id, (result) => {
+        socketMiddleware('create')(data, (result) => {
             callback(result);
         });
     });
     socket.on('update', (data, callback) => {
-        socketMiddleware('update')(data, socket.id, (result) => {
+        socketMiddleware('update')(data, (result) => {
             callback(result);
         });
     });
-    socket.on('logoff', (callback) => {
-        socketMiddleware('logoff')('', socket.id, (result) => {
+    socket.on('logoff', (data, callback) => {
+        socketMiddleware('logoff')(data, (result) => {
             callback(result);
-            io.emit('atualizar_dados', { action: 'deslogado', login: result });
+        });
+    });
+    socket.on('reset_senha', (data, callback) => {
+        socketMiddleware('reset')(data, (result) => {
+            callback(result);
         });
     });
     socket.on('abrir_chamado', (data, callback) => {
-        socketMiddleware('solicitarSuporte')(data, socket.id, (result) => {
+        socketMiddleware('solicitarSuporte')(data, (result) => {
             callback(result);
             io.emit('atualizar_suporte', { action: 'abrir', chamado: result });
         });
     });
     socket.on('cancelar_chamado', (data, callback) => {
-        socketMiddleware('cancelarSuporte')(data, socket.id, (result) => {
+        socketMiddleware('cancelarSuporte')(data, (result) => {
             callback(result);
             io.emit('atualizar_suporte', { action: 'cancelar', chamado: result });
         });
@@ -78,30 +102,51 @@ io.on('connection', (socket) => {
             console.error('Callback não é uma função');
             return;
         }
-        socketMiddleware('consultarSuporte')('', socket.id, (result) => {
+        socketMiddleware('consultarSuporte')('', (result) => {
             callback(result);
         });
     });
     socket.on('atender_chamado', (data, callback) => {
-        socketMiddleware('atenderSuporte')(data, socket.id, (result) => {
+        socketMiddleware('atenderSuporte')(data, (result) => {
             callback(result);
             io.emit('atualizar_suporte', { action: 'atender', chamado: result });
         });
     });
+    socket.on('finalizar_chamado', (data) => {
+        socketMiddleware('finalizarSuporte')(data, (result) => {
+            io.emit('atualizar_suporte', { action: 'finalizar', chamado: result });
+        });
+    });
     socket.on('atualizar_manager', (callback) => {
-        socketMiddleware('atualizarSuporteManager')('',socket.id, (result) => {
+        socketMiddleware('atualizarSuporteManager')('',(result) => {
             callback(result);
             io.emit('atualizar_suporte', { action: 'consulta_manager', chamado: result });
         });
     });
-    socket.on('finalizar_chamado', (data) => {
-        socketMiddleware('finalizarSuporte')(data, socket.id, (result) => {
-            io.emit('atualizar_suporte', { action: 'finalizar', chamado: result });
+    socket.on('consultar_logados', (callback) => {
+        socketMiddleware('logados')('', (result) => {
+            callback(result);
+        });
+    });
+    socket.on('atualizar_token', (data, callback) => {
+        socketMiddleware('atualizarToken')(data, (result) => {
+            callback(result);
         });
     });
     socket.on('disconnect', () => {
         //
     });
+    setInterval(async () => {
+        try {
+            socketMiddleware('verificarToken')({}, (result) => {
+                if (result.deslogados && result.deslogados.length > 0) {
+                    io.emit('tokens_deslogados', { tokens: result.deslogados });
+                }
+            });
+        } catch (err) {
+            console.error('Erro ao verificar tokens:', err);
+        }
+    }, 5 * 60 * 1000);
 });
 
 const shutdownPool = async () => {
@@ -115,6 +160,7 @@ const shutdownPool = async () => {
         }
     }
 };
+
 const gracefulShutdown = () => {
     console.log('Iniciando encerramento gracioso...');
     servidor.close(async () => {
@@ -127,7 +173,10 @@ const gracefulShutdown = () => {
         process.exit(1);
     }, 10000);
 };
+
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
+
+startServer();
 
 export { app };

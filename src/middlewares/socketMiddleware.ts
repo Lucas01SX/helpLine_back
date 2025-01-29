@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
 import { routeMap } from '../routes/SuporteRoutes';
 import { userRoute } from '../routes/userRoutes';
+import { tokenRoutes } from '../routes/TokenRoutes';
 
 export const socketMiddleware = (routeName: string) => {
-    return (data: any, socketId: string, callback: (result: any) => void) => {
-        const req = { body: { ...data, socketId } } as Request;
+    return (data: any, callback: (result: any) => void) => {
+        const req = { body: { ...data } } as Request;
         const res = {
             status: (statusCode: number) => ({
                 json: (result: any) => {
@@ -14,7 +15,7 @@ export const socketMiddleware = (routeName: string) => {
                 }
             })
         } as Response;
-        const routeHandler = routeMap[routeName] || userRoute[routeName];
+        const routeHandler = routeMap[routeName] || userRoute[routeName] || tokenRoutes[routeName];
         if (routeHandler) {
             routeHandler(req, res);
         } else {
