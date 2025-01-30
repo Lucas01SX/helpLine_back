@@ -120,7 +120,6 @@ io.on('connection', (socket) => {
     socket.on('atualizar_manager', (callback) => {
         socketMiddleware('atualizarSuporteManager')('',(result) => {
             callback(result);
-            io.emit('atualizar_suporte', { action: 'consulta_manager', chamado: result });
         });
     });
     socket.on('consultar_logados', (callback) => {
