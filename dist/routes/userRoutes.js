@@ -15,5 +15,6 @@ const userRoute = {
     update: (req, res) => userController.atualizarSenha(req, res),
     logoff: (req, res) => userController.deslogar(req, res),
     logados: (req, res) => userController.usuarioslogados(req, res),
+    reset: (req, res) => userController.reset(req, res),
 };
 exports.userRoute = userRoute;

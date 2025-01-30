@@ -51,12 +51,6 @@ class UserService {
                 yield client.query('BEGIN');
                 yield client.query('update suporte.tb_login_logoff_suporte  set status = 0, hr_logoff =  now()::time where id_secao = $1  ', [id_secao]);
                 yield client.query('COMMIT');
-                const result = yield client.query('SELECT pk_id_usuario FROM suporte.tb_login_logoff_suporte where status = 0 and id_secao = $1 ', [id_secao]);
-                if (result.rows.length === 0) {
-                    throw new Error('seção não encontrado');
-                }
-                const secao = result.rows[0];
-                return secao;
             }
             catch (e) {
                 yield client.query('ROLLBACK');
@@ -118,14 +112,13 @@ class UserService {
                 const secretKey = '79F49A2A9A1C99C52E655346CB579';
                 const token = jsonwebtoken_1.default.sign({ userId: user.id_usuario }, secretKey, { expiresIn: '1d' });
                 const suporte = yield this.login_suporte(token, user.id_usuario);
-                console.log(suporte);
                 if (suporte === 'Cadastro realizado com sucesso!') {
                     TokenService_1.TokenService.atualizarToken(token);
-                    return Object.assign(Object.assign({}, userData), { token });
+                    return Object.assign(Object.assign({}, userData), { token: token });
                 }
                 else {
                     TokenService_1.TokenService.atualizarToken(suporte);
-                    return Object.assign(Object.assign({}, userData), { suporte });
+                    return Object.assign(Object.assign({}, userData), { token: suporte });
                 }
             }
             catch (e) {
@@ -178,8 +171,82 @@ class UserService {
     static usuariosLogados() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const result = yield db_1.default.query('select b.login, b.nome from suporte.tb_login_logoff_suporte a join suporte.tb_login_suporte b on a.pk_id_usuario = b.id_usuario where a.dt_login = current_date and a.status = 1');
+                const result = yield db_1.default.query(`select b.login, b.nome from suporte.tb_login_logoff_suporte a join suporte.tb_login_suporte b on a.pk_id_usuario = b.id_usuario where a.dt_login = current_date and a.status = 1 order by b.nome asc`);
                 return result.rows;
+            }
+            catch (e) {
+                console.error('Erro na autenticação:', e);
+                throw e;
+            }
+        });
+    }
+    static idResetSenha(matricula_resetado, matricula_solicitante) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const result = yield db_1.default.query(`select id_usuario, matricula from suporte.tb_login_suporte where matricula in($1,$2)`, [matricula_resetado, matricula_solicitante]);
+                return result.rows;
+            }
+            catch (e) {
+                console.error('Erro na autenticação:', e);
+                throw e;
+            }
+        });
+    }
+    static logResetSenha(id_suporte_resetado, id_suporte_solicitacao) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const client = yield db_1.default.connect();
+            try {
+                yield client.query('BEGIN');
+                yield client.query(`INSERT INTO suporte.tb_log_reset_senha (dt_reset_senha, hr_reset_senha, pk_id_usuario_resetado, pk_id_usuario_solicitante) VALUES(current_date, now()::time, $1, $2) `, [id_suporte_resetado, id_suporte_solicitacao]);
+                yield client.query('COMMIT');
+            }
+            catch (e) {
+                yield client.query('ROLLBACK');
+                console.error('Erro na autenticação:', e);
+                throw e;
+            }
+            finally {
+                client.release();
+            }
+        });
+    }
+    static resetSenha(matricula_reset) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const client = yield db_1.default.connect();
+            try {
+                yield client.query('BEGIN');
+                yield client.query(`UPDATE suporte.tb_login_suporte SET password=null WHERE matricula=$1`, [matricula_reset]);
+                yield client.query('COMMIT');
+            }
+            catch (e) {
+                yield client.query('ROLLBACK');
+                console.error('Erro na autenticação:', e);
+                throw e;
+            }
+            finally {
+                client.release();
+            }
+        });
+    }
+    static reset(matricula_reset, matricula_solicitacao) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const result = yield this.idResetSenha(matricula_reset, matricula_solicitacao);
+                let id_resetado = undefined;
+                let id_solicitante = undefined;
+                result.forEach((row) => {
+                    if (row.matricula === matricula_reset) {
+                        id_resetado = row.id_usuario;
+                    }
+                    else if (row.matricula === matricula_solicitacao) {
+                        id_solicitante = row.id_usuario;
+                    }
+                });
+                if (id_resetado === undefined || id_solicitante === undefined) {
+                    throw new Error('IDs não encontrados para as matrículas fornecidas.');
+                }
+                yield this.logResetSenha(id_resetado, id_solicitante);
+                yield this.resetSenha(matricula_reset);
             }
             catch (e) {
                 console.error('Erro na autenticação:', e);
