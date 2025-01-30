@@ -75,8 +75,10 @@ export class UserController {
     }
     public async reset(req:Request, res:Response):Promise <void> {
         const {matricula_reset, matricula_solicitacao} = req.body;
+        const mat_reset = parseInt(matricula_reset);
+        const mat_soli = parseInt(matricula_solicitacao);
         try {
-            await UserService.reset(matricula_reset,matricula_solicitacao);
+            await UserService.reset(mat_reset,mat_soli);
             res.status(200).json({message: 'Reset realizado com sucesso'});
         } catch(error) {
             if (error instanceof Error) {
