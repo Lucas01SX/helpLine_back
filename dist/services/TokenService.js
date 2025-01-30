@@ -20,12 +20,15 @@ class TokenService {
     static verificarTokens() {
         return __awaiter(this, void 0, void 0, function* () {
             const now = Date.now();
+            const deslogados = [];
             for (const token in this.tokens) {
                 if (now - this.tokens[token] > 5 * 60 * 1000) {
                     delete this.tokens[token];
                     yield UserService_1.UserService.deslog_suporte(token);
+                    deslogados.push(token);
                 }
             }
+            return deslogados;
         });
     }
 }

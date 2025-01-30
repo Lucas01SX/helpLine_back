@@ -16,7 +16,7 @@ class TokenController {
         return __awaiter(this, void 0, void 0, function* () {
             const { token } = req.body;
             try {
-                TokenService_1.TokenService.atualizarToken(token);
+                yield TokenService_1.TokenService.atualizarToken(token);
                 res.status(200).json({ message: 'Token atualizado com sucesso!' });
             }
             catch (error) {
@@ -32,8 +32,8 @@ class TokenController {
     verificarTokens(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                TokenService_1.TokenService.verificarTokens();
-                res.status(200).json({ message: 'Tokens atualizados com sucesso!' });
+                const tokens = yield TokenService_1.TokenService.verificarTokens();
+                res.status(200).json({ message: 'Tokenn deslogados!', tokens });
             }
             catch (error) {
                 if (error instanceof Error) {

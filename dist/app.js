@@ -91,6 +91,11 @@ io.on('connection', (socket) => {
             callback(result);
         });
     });
+    socket.on('reset_senha', (data, callback) => {
+        (0, socketMiddleware_1.socketMiddleware)('reset')(data, (result) => {
+            callback(result);
+        });
+    });
     socket.on('abrir_chamado', (data, callback) => {
         (0, socketMiddleware_1.socketMiddleware)('solicitarSuporte')(data, (result) => {
             callback(result);
@@ -126,7 +131,6 @@ io.on('connection', (socket) => {
     socket.on('atualizar_manager', (callback) => {
         (0, socketMiddleware_1.socketMiddleware)('atualizarSuporteManager')('', (result) => {
             callback(result);
-            io.emit('atualizar_suporte', { action: 'consulta_manager', chamado: result });
         });
     });
     socket.on('consultar_logados', (callback) => {
@@ -145,9 +149,9 @@ io.on('connection', (socket) => {
     setInterval(() => __awaiter(void 0, void 0, void 0, function* () {
         try {
             (0, socketMiddleware_1.socketMiddleware)('verificarToken')({}, (result) => {
-                (0, socketMiddleware_1.socketMiddleware)('atualizarSuporteManager')('', (result) => {
-                    io.emit('atualizar_suporte', { action: 'consulta_manager', chamado: result });
-                });
+                if (result.deslogados && result.deslogados.length > 0) {
+                    io.emit('tokens_deslogados', { tokens: result.deslogados });
+                }
             });
         }
         catch (err) {
