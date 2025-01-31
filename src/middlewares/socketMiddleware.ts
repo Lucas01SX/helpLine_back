@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { routeMap } from '../routes/SuporteRoutes';
 import { userRoute } from '../routes/userRoutes';
 import { tokenRoutes } from '../routes/TokenRoutes';
+import { dashboardRoutes } from '../routes/DashboardRoutes';
 
 export const socketMiddleware = (routeName: string) => {
     return (data: any, callback: (result: any) => void) => {
@@ -15,7 +16,7 @@ export const socketMiddleware = (routeName: string) => {
                 }
             })
         } as Response;
-        const routeHandler = routeMap[routeName] || userRoute[routeName] || tokenRoutes[routeName];
+        const routeHandler = routeMap[routeName] || userRoute[routeName] || tokenRoutes[routeName] || dashboardRoutes[routeName];
         if (routeHandler) {
             routeHandler(req, res);
         } else {

@@ -66,6 +66,8 @@ app.use(express_1.default.json());
 app.use(body_parser_1.default.json());
 let poolEnded = false;
 app.use('/api/filas', FilasRoutes_1.default);
+// ROTA PARA TESTES
+// app.use('/api/dash', testeRoutes);
 app.get('/', (req, res) => {
     res.send(`Bem vindo à API`);
 });
@@ -140,6 +142,11 @@ io.on('connection', (socket) => {
     });
     socket.on('atualizar_token', (data, callback) => {
         (0, socketMiddleware_1.socketMiddleware)('atualizarToken')(data, (result) => {
+            callback(result);
+        });
+    });
+    socket.on('cards_dashboard', (callback) => {
+        (0, socketMiddleware_1.socketMiddleware)('dashboard')('', (result) => {
             callback(result);
         });
     });

@@ -2,6 +2,7 @@ import pool from '../database/db';
 import { TokenService } from './TokenService';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+
 export class UserService {
     public static async login_suporte( id_secao:string, id_usuario:number  ): Promise<any> {
         const client = await pool.connect();
@@ -131,10 +132,10 @@ export class UserService {
     }
     public static async usuariosLogados() :Promise<any> {
         try {
-            const result = await pool.query(`select b.login, b.nome from suporte.tb_login_logoff_suporte a join suporte.tb_login_suporte b on a.pk_id_usuario = b.id_usuario where a.dt_login = current_date and a.status = 1 order by b.nome asc`);
+            const result = await pool.query(`select b.login, b.nome, b.codfuncao, e.de_funcao, string_agg(d.segmento, ',') as segmento, string_agg(c.fila, ',') as fila, string_agg(c.mcdu, ',') as mcdu from suporte.tb_login_logoff_suporte a join suporte.tb_login_suporte b on a.pk_id_usuario = b.id_usuario join suporte.tb_skills_staff c on b.matricula = c.matricula::int join trafego.tb_anexo1g d on c.mcdu::int = d.mcdu join trafego.tb_funcao e on e.co_funcao::int = b.codfuncao where a.dt_login = current_date and a.status = 1 and c.excluida = false group by b.login, b.nome, e.de_funcao, b.codfuncao order by b.nome asc`);
             return result.rows;
         } catch (e) {
-            console.error('Erro na autenticação:', e);
+            console.error('Erro em validar logados:', e);
             throw e;
         }
     }
@@ -197,4 +198,5 @@ export class UserService {
             throw e;
         }
     }
+
 }
