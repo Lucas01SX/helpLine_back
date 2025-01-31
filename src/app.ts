@@ -4,6 +4,7 @@ import cors from 'cors';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import filasRoutes from './routes/FilasRoutes';
+import testeRoutes from './routes/TesteRoutes';
 import pool from './database/db';
 import { socketMiddleware } from './middlewares/socketMiddleware';
 import { updateCache } from './services/cacheService';
@@ -54,6 +55,9 @@ app.use(bodyParser.json());
 let poolEnded = false;
 
 app.use('/api/filas', filasRoutes);
+// ROTA PARA TESTES
+// app.use('/api/dash', testeRoutes);
+
 app.get('/', (req: Request, res: Response) => {
     res.send(`Bem vindo à API`);
 });
@@ -129,6 +133,11 @@ io.on('connection', (socket) => {
     });
     socket.on('atualizar_token', (data, callback) => {
         socketMiddleware('atualizarToken')(data, (result) => {
+            callback(result);
+        });
+    });
+    socket.on('cards_dashboard', (callback) => {
+        socketMiddleware('dashboard')('', (result) => {
             callback(result);
         });
     });
