@@ -103,89 +103,107 @@ export class DashboardService {
     }
 
     private static async tratamentoDadosDash(usuariosLogadosDash: any, dadosGeraisSuporteDash: any): Promise<any> {
-        const usuarios = usuariosLogadosDash;
-        const dadosGerais = dadosGeraisSuporteDash;
-        
-        try {
-            const faixasHorarias = this.gerarIntervalosHora();  // Gera das 07:00 até 21:00
-            const now = new Date();
-            const currentHour = now.getHours();
-            const currentMinute = now.getMinutes();
+    const usuarios = usuariosLogadosDash;
+    const dadosGerais = dadosGeraisSuporteDash;
+    
+    try {
+        const faixasHorarias = this.gerarIntervalosHora();  // Gera das 07:00 até 21:00
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
 
-            const faixasFiltradas = faixasHorarias.filter(faixa => {
-                const [h, m] = faixa.split(':').map(Number);
-                return h < currentHour || (h === currentHour && m <= currentMinute);
-            });
+        const faixasFiltradas = faixasHorarias.filter(faixa => {
+            const [h, m] = faixa.split(':').map(Number);
+            return h < currentHour || (h === currentHour && m <= currentMinute);
+        });
 
-            // Inicializando a estrutura de resultado
-            const resultado: any[] = faixasFiltradas.map(faixa => ({
-                hora: faixa,
-                logados: 0,
-                acionamentos: 0,
-                tempoMedioEspera: 0,
-                chamadosCancelados: 0,
-                segmentos: {}  // Para agrupar os dados por segmentos
-            }));
+        // Inicializando a estrutura de resultado
+        const resultado: any[] = faixasFiltradas.map(faixa => ({
+            hora: faixa,
+            logados: 0,
+            acionamentos: 0,
+            tempoMedioEspera: 0,
+            chamadosCancelados: 0,
+            segmentos: {}  // Para agrupar os dados por segmentos
+        }));
 
-            // Processando dados de filas e segmentos
-            dadosGerais.forEach((registro: any) => {
-                // Para cada faixa horária, verificamos se ela corresponde à hora de solicitação
-                resultado.forEach(faixa => {
-                    const [h, m] = faixa.hora.split(':').map(Number);
-                    const horaSolicitacao = new Date(registro.dt_solicitacao_suporte);
-                    const [horaChamado, minutoChamado] = [horaSolicitacao.getHours(), horaSolicitacao.getMinutes()];
+        // Processando dados de filas e segmentos
+        dadosGerais.forEach((registro: any) => {
+            // Para cada faixa horária, verificamos se ela corresponde à hora de solicitação
+            resultado.forEach(faixa => {
+                const [h, m] = faixa.hora.split(':').map(Number);
+                const horaSolicitacao = new Date(registro.dt_solicitacao_suporte);
+                const [horaChamado, minutoChamado] = [horaSolicitacao.getHours(), horaSolicitacao.getMinutes()];
 
-                    // Verificando se a faixa horária corresponde à hora da solicitação
-                    if (horaChamado === h && minutoChamado <= m) {
-                        // Inicializando o segmento se necessário
-                        const segmento = registro.segmento;
+                // Verificando se a faixa horária corresponde à hora da solicitação
+                if (horaChamado === h && minutoChamado <= m) {
+                    // Inicializando o segmento se necessário
+                    const segmento = registro.segmento;
 
-                        if (!faixa.segmentos[segmento]) {
-                            faixa.segmentos[segmento] = { filas: {} };
-                        }
-
-                        const fila = registro.fila;
-                        const mcdu = registro.mcdu;
-
-                        // Inicializando a fila no segmento
-                        if (!faixa.segmentos[segmento].filas[fila]) {
-                            faixa.segmentos[segmento].filas[fila] = { mcdus: {} };
-                        }
-
-                        // Inicializando o mcdu na fila
-                        if (!faixa.segmentos[segmento].filas[fila].mcdus[mcdu]) {
-                            faixa.segmentos[segmento].filas[fila].mcdus[mcdu] = {
-                                logados: 0,
-                                acionamentos: 0,
-                                tempoMedioEspera: 0,
-                                chamadosCancelados: 0
-                            };
-                        }
-
-                        // Pegando o objeto do MCDU para agregação de dados
-                        const filaSegmento = faixa.segmentos[segmento].filas[fila].mcdus[mcdu];
-
-                        // Atualizando os valores no MCDU
-                        filaSegmento.logados += 1;  // Exemplo de incremento
-                        filaSegmento.acionamentos += registro.acionamentos;
-                        filaSegmento.tempoMedioEspera += registro.tempo_aguardando_suporte;
-                        filaSegmento.chamadosCancelados += registro.cancelar_suporte;
-
-                        // Atualizando os totais do segmento
-                        faixa.logados += 1;
-                        faixa.acionamentos += registro.acionamentos;
-                        faixa.tempoMedioEspera += registro.tempo_aguardando_suporte;
-                        faixa.chamadosCancelados += registro.cancelar_suporte;
+                    if (!faixa.segmentos[segmento]) {
+                        faixa.segmentos[segmento] = { mcdus: {} };
                     }
-                });
-            });
 
-            return resultado;
-        } catch (e) {
-            console.error('Erro no tratamento de dados do Dash:', e);
-            throw e;
-        }
+                    const mcdu = registro.mcdu;
+
+                    // Inicializando o mcdu no segmento
+                    if (!faixa.segmentos[segmento].mcdus[mcdu]) {
+                        faixa.segmentos[segmento].mcdus[mcdu] = {
+                            logados: 0,
+                            acionamentos: 0,
+                            tempoMedioEspera: 0,
+                            chamadosCancelados: 0
+                        };
+                    }
+
+                    // Pegando o objeto do MCDU para agregação de dados
+                    const mcduObj = faixa.segmentos[segmento].mcdus[mcdu];
+
+                    // Atualizando os valores no MCDU
+                    mcduObj.logados += 1;  // Exemplo de incremento
+                    mcduObj.acionamentos += registro.acionamentos;
+                    mcduObj.tempoMedioEspera += registro.tempo_aguardando_suporte;
+                    mcduObj.chamadosCancelados += registro.cancelar_suporte;
+
+                    // Atualizando os totais da faixa horária
+                    faixa.logados += 1;
+                    faixa.acionamentos += registro.acionamentos;
+                    faixa.tempoMedioEspera += registro.tempo_aguardando_suporte;
+                    faixa.chamadosCancelados += registro.cancelar_suporte;
+                }
+            });
+        });
+
+        // Ajustando o resultado para o formato desejado
+        return resultado.map(faixa => ({
+            hora: faixa.hora,
+            logados: faixa.logados,
+            acionamentos: faixa.acionamentos,
+            tempoMedioEspera: faixa.tempoMedioEspera,
+            chamadosCancelados: faixa.chamadosCancelados,
+            segmentos: Object.fromEntries(
+                Object.entries(faixa.segmentos).map(([segmento, data]) => ({
+                    [segmento]: {
+                        mcdus: Object.fromEntries(
+                            Object.entries(data.mcdus).map(([mcdu, mcduData]) => ({
+                                [mcdu]: {
+                                    logados: mcduData.logados,
+                                    acionamentos: mcduData.acionamentos,
+                                    tempoMedioEspera: mcduData.tempoMedioEspera,
+                                    chamadosCancelados: mcduData.chamadosCancelados
+                                }
+                            }))
+                        )
+                    }
+                }))
+            )
+        }));
+
+    } catch (e) {
+        console.error('Erro no tratamento de dados do Dash:', e);
+        throw e;
     }
+}
 
 
 
