@@ -85,8 +85,8 @@ export class DashboardService {
                 hora: faixa,
                 logados: 0,
                 acionamentos: 0,
-                tempoMedioEspera: 0,
-                tempoTotalEspera: 0,  // Para calcular a soma do tempo total de espera
+                tempoMedioEspera: 0,  // Manter como número (minutos)
+                tempoTotalEspera: 0,
                 chamadosCancelados: 0
             }));
 
@@ -115,7 +115,7 @@ export class DashboardService {
                     if (horaSolicitacaoMinutos >= faixaInicioMinutos && horaSolicitacaoMinutos <= faixaFimMinutos) {
                         faixa.acionamentos += 1;
                         if (chamado.tempo_aguardando_suporte && !chamado.cancelar_suporte) {
-                            faixa.tempoTotalEspera += chamado.tempo_aguardando_suporte; // Somando tempo total de espera
+                            faixa.tempoTotalEspera += chamado.tempo_aguardando_suporte;  // Somando o tempo total de espera
                         }
                         if (chamado.cancelar_suporte) {
                             faixa.chamadosCancelados += 1;
@@ -127,11 +127,13 @@ export class DashboardService {
             // Calculando o tempo médio de espera
             resultado.forEach(faixa => {
                 if (faixa.acionamentos > 0) {
-                    faixa.tempoMedioEspera = faixa.tempoTotalEspera / faixa.acionamentos; // Calculando a média
+                    faixa.tempoMedioEspera = faixa.tempoTotalEspera / faixa.acionamentos;  // Média em minutos
+                } else {
+                    faixa.tempoMedioEspera = 0; // Se não houver acionamentos, a média é 0
                 }
             });
 
-            return resultado;
+            return resultado;  // Retorna os dados com tempoMedioEspera como HH:mm:ss
         } catch (e) {
             console.error('Erro no tratamento de dados do Dash:', e);
             throw e;
