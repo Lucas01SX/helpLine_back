@@ -3,11 +3,7 @@ import pool from '../database/db';
 export class DashboardService {
     private static async usuariosLogadosDash(): Promise<any> {
         try {
-            const result = await pool.query(`
-                select a.pk_id_usuario, a.hr_login, a.hr_logoff 
-                from suporte.tb_login_logoff_suporte a
-                where a.dt_login = current_date
-            `);
+            const result = await pool.query(`select distinct a.pk_id_usuario, a.hr_login, a.hr_logoff from suporte.tb_login_logoff_suporte a join suporte.tb_login_suporte b on a.pk_id_usuario = b.id_usuario join suporte.tb_skills_staff c on b.matricula = c.matricula::int where a.dt_login = current_date`);
             const usuarios = result.rows.map((usuario: any) => {
                 const hr_login = new Date(`1970-01-01T${usuario.hr_login}Z`);
                 hr_login.setHours(hr_login.getHours());
@@ -33,12 +29,7 @@ export class DashboardService {
 
     private static async dadosGeraisSuporteDash(): Promise<any> {
         try {
-            const result = await pool.query(`
-                select a.id_suporte, a.hora_solicitacao_suporte, a.dt_solicitacao_suporte, 
-                       a.tempo_aguardando_suporte, a.cancelar_suporte
-                from suporte.tb_chamado_suporte a 
-                where a.dt_solicitacao_suporte = current_date
-            `);
+            const result = await pool.query(`select a.id_suporte, a.hora_solicitacao_suporte, a.dt_solicitacao_suporte, a.tempo_aguardando_suporte, a.cancelar_suporte from suporte.tb_chamado_suporte a where a.dt_solicitacao_suporte = current_date`);
             return result.rows;
         } catch (e) {
             console.error('Erro ao obter dados gerais de suporte:', e);
