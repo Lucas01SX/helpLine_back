@@ -8,13 +8,22 @@ interface FilaSegmentoData {
     chamadosCancelados: number;
 }
 
-interface Faixa {
-    hora: string;
-    logados: number;
-    acionamentos: number;
-    tempoMedioEspera: number;
-    chamadosCancelados: number;
-    filas: { [key: string]: FilaSegmentoData };  // Tipando filas com chave string
+interface SegmentoData {
+    [segmento: string]: {
+        filas: { 
+            [fila: string]: {
+                mcdus: { 
+                    [mcdu: string]: FilaSegmentoData 
+                }
+            }
+        }
+    }
+}
+
+interface FilaData {
+    fila: string;
+    segmento: string;
+    mcdu: string;
 }
 
 export class DashboardService {
@@ -78,7 +87,7 @@ export class DashboardService {
         return h * 60 + m + s / 60;
     }
 
-        private static async tratamentoDadosDash(usuariosLogadosDash: any, dadosGeraisSuporteDash: any): Promise<any> {
+    private static async tratamentoDadosDash(usuariosLogadosDash: any, dadosGeraisSuporteDash: any): Promise<any> {
         const usuarios = usuariosLogadosDash;
         const dadosGerais = dadosGeraisSuporteDash;
         
@@ -93,126 +102,47 @@ export class DashboardService {
                 return h < currentHour || (h === currentHour && m <= currentMinute);
             });
 
-            const resultado: Faixa[] = faixasFiltradas.map(faixa => ({
+            const resultado: any[] = faixasFiltradas.map(faixa => ({
                 hora: faixa,
                 logados: 0,
                 acionamentos: 0,
                 tempoMedioEspera: 0,
                 chamadosCancelados: 0,
-                filas: {}  // Para agrupar os dados de filas
+                segmentos: {}  // Para agrupar os dados por segmentos
             }));
 
             // Integrando com dados de filas e segmentos
-            const filas = await FilasService.filasGerais();
+            const filas: FilaData[] = await FilasService.filasGerais();
 
-            // Inicializando as estruturas de filas e segmentos para cada faixa horária
-            filas.forEach(fila => {
+            filas.forEach((fila: FilaData) => {  
                 resultado.forEach(faixa => {
-                    // Inicializa as filas e segmentos dentro de cada faixa
-                    if (!faixa.filas[fila.fila]) {
-                        faixa.filas[fila.fila] = {
+                    // Identifica o segmento, se é com ou sem acento
+                    const segmento = fila.segmento.includes('CARTÃO') ? 'CARTÃO' : fila.segmento;
+
+                    // Inicializa a estrutura de segmentos, filas e mcdus
+                    if (!faixa.segmentos[segmento]) {
+                        faixa.segmentos[segmento] = { filas: {} };
+                    }
+
+                    if (!faixa.segmentos[segmento].filas[fila.fila]) {
+                        faixa.segmentos[segmento].filas[fila.fila] = { mcdus: {} };
+                    }
+
+                    if (!faixa.segmentos[segmento].filas[fila.fila].mcdus[fila.mcdu]) {
+                        faixa.segmentos[segmento].filas[fila.fila].mcdus[fila.mcdu] = {
                             logados: 0,
                             acionamentos: 0,
                             tempoMedioEspera: 0,
                             chamadosCancelados: 0
                         };
                     }
-                    if (!faixa.filas[fila.segmento]) {
-                        faixa.filas[fila.segmento] = {
-                            logados: 0,
-                            acionamentos: 0,
-                            tempoMedioEspera: 0,
-                            chamadosCancelados: 0
-                        };
-                    }
-                });
-            });
 
-            // Filtrando os usuários logados
-            usuarios.forEach((usuario: any) => {
-                const hrLoginMinutos = this.horaParaMinutos(usuario.hr_login);
-                const hrLogoffMinutos = usuario.hr_logoff ? this.horaParaMinutos(usuario.hr_logoff) : Infinity;
-
-                resultado.forEach(faixa => {
-                    const faixaInicioMinutos = this.horaParaMinutos(faixa.hora);
-                    const faixaFimMinutos = faixaInicioMinutos + 60;
-                    if (hrLoginMinutos <= faixaFimMinutos && hrLogoffMinutos >= faixaInicioMinutos) {
-                        faixa.logados += 1;
-                        // Acionando as filas e segmentos
-                        usuario.fila.split(',').forEach((fila: string) => {  // Tipando fila como string
-                            if (faixa.filas[fila]) {
-                                faixa.filas[fila].logados += 1;
-                            }
-                        });
-                        usuario.segmento.split(',').forEach((segmento: string) => {  // Tipando segmento como string
-                            if (faixa.filas[segmento]) {
-                                faixa.filas[segmento].logados += 1;
-                            }
-                        });
-                    }
-                });
-            });
-
-            // Processando dados dos chamados
-            dadosGerais.forEach((chamado: any) => {
-                const horaSolicitacaoMinutos = this.horaParaMinutos(chamado.hora_solicitacao_suporte);
-
-                resultado.forEach(faixa => {
-                    const faixaInicioMinutos = this.horaParaMinutos(faixa.hora);
-                    const faixaFimMinutos = faixaInicioMinutos + 60;
-
-                    if (horaSolicitacaoMinutos >= faixaInicioMinutos && horaSolicitacaoMinutos <= faixaFimMinutos) {
-                        faixa.acionamentos += 1;
-                        if (chamado.tempo_aguardando_suporte && !chamado.cancelar_suporte) {
-                            const tempoEsperaMinutos = this.tempoParaMinutos(chamado.tempo_aguardando_suporte);
-                            faixa.tempoMedioEspera += tempoEsperaMinutos;
-                        }
-                        if (chamado.cancelar_suporte) {
-                            faixa.chamadosCancelados += 1;
-                        }
-
-                        // Acionamentos por fila e segmento
-                        chamado.fila.split(',').forEach((fila: string) => {  // Tipando fila como string
-                            if (faixa.filas[fila]) {
-                                faixa.filas[fila].acionamentos += 1;
-                                if (chamado.tempo_aguardando_suporte) {
-                                    const tempoEsperaMinutos = this.tempoParaMinutos(chamado.tempo_aguardando_suporte);
-                                    faixa.filas[fila].tempoMedioEspera += tempoEsperaMinutos;
-                                }
-                                if (chamado.cancelar_suporte) {
-                                    faixa.filas[fila].chamadosCancelados += 1;
-                                }
-                            }
-                        });
-
-                        chamado.segmento.split(',').forEach((segmento: string) => {  // Tipando segmento como string
-                            if (faixa.filas[segmento]) {
-                                faixa.filas[segmento].acionamentos += 1;
-                                if (chamado.tempo_aguardando_suporte) {
-                                    const tempoEsperaMinutos = this.tempoParaMinutos(chamado.tempo_aguardando_suporte);
-                                    faixa.filas[segmento].tempoMedioEspera += tempoEsperaMinutos;
-                                }
-                                if (chamado.cancelar_suporte) {
-                                    faixa.filas[segmento].chamadosCancelados += 1;
-                                }
-                            }
-                        });
-                    }
-                });
-            });
-
-            // Calculando o tempo médio de espera por faixa, fila e segmento
-            resultado.forEach(faixa => {
-                if (faixa.acionamentos > 0) {
-                    faixa.tempoMedioEspera = faixa.tempoMedioEspera / faixa.acionamentos;
-                }
-
-                // Para cada fila e segmento dentro da faixa
-                Object.keys(faixa.filas).forEach(key => {
-                    const filaOuSegmento = faixa.filas[key];
-                    if (filaOuSegmento.acionamentos > 0) {
-                        filaOuSegmento.tempoMedioEspera = filaOuSegmento.tempoMedioEspera / filaOuSegmento.acionamentos;
-                    }
+                    // Aqui você pode agregar ou modificar os valores conforme necessário
+                    const filaSegmento = faixa.segmentos[segmento].filas[fila.fila].mcdus[fila.mcdu];
+                    filaSegmento.logados += 1;  // Exemplo de incremento
+                    filaSegmento.acionamentos += fila.acionamentos;
+                    filaSegmento.tempoMedioEspera += fila.tempoMedioEspera;
+                    filaSegmento.chamadosCancelados += fila.chamadosCancelados;
                 });
             });
 
@@ -222,6 +152,7 @@ export class DashboardService {
             throw e;
         }
     }
+
 
     public static async dadosSuporteDash(): Promise<any> {
         try {
