@@ -65,52 +65,89 @@ export class DashboardService {
         return h * 60 + m + s / 60;
     }
 
+    private static async tratamentoDadosDash(usuariosLogadosDash: any, dadosGeraisSuporteDash: any): Promise<any> {
+        const usuarios = usuariosLogadosDash;
+        const dadosGerais = dadosGeraisSuporteDash;
+        
+        try {
+            const faixasHorarias = this.gerarIntervalosHora();  // Gera das 07:00 até 21:00
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+
+            // Filtra as faixas horárias até a hora atual
+            const faixasFiltradas = faixasHorarias.filter(faixa => {
+                const [h, m] = faixa.split(':').map(Number);
+                return h < currentHour || (h === currentHour && m <= currentMinute);
+            });
+
+            // Inicializa o array de resultado
+            const resultado = faixasFiltradas.map(faixa => ({
+                hora: faixa,
+                logados: 0,
+                acionamentos: 0,
+                tempoMedioEspera: 0,  // Inicialmente 0
+                tempoTotalEspera: 0,
+                chamadosCancelados: 0
+            }));
+
+            // Processa os usuários logados
+            usuarios.forEach((usuario: any) => {
+                const hrLoginMinutos = this.horaParaMinutos(usuario.hr_login);
+                const hrLogoffMinutos = usuario.hr_logoff ? this.horaParaMinutos(usuario.hr_logoff) : Infinity;
+
+                resultado.forEach(faixa => {
+                    const faixaInicioMinutos = this.horaParaMinutos(faixa.hora);
+                    const faixaFimMinutos = faixaInicioMinutos + 60;
+
+                    // Verifica se o usuário estava logado durante a faixa horária
+                    if (hrLoginMinutos <= faixaFimMinutos && hrLogoffMinutos >= faixaInicioMinutos) {
+                        faixa.logados += 1;
+                    }
+                });
+            });
+
+            // Processa os dados dos chamados
+            dadosGerais.forEach((chamado: any) => {
+                const horaSolicitacaoMinutos = this.horaParaMinutos(chamado.hora_solicitacao_suporte);
+
+                resultado.forEach(faixa => {
+                    const faixaInicioMinutos = this.horaParaMinutos(faixa.hora);
+                    const faixaFimMinutos = faixaInicioMinutos + 60;
+
+                    // Verifica se o chamado ocorreu durante a faixa horária
+                    if (horaSolicitacaoMinutos >= faixaInicioMinutos && horaSolicitacaoMinutos <= faixaFimMinutos) {
+                        faixa.acionamentos += 1;
+                        if (chamado.tempo_aguardando_suporte && !chamado.cancelar_suporte) {
+                            faixa.tempoTotalEspera += this.horaParaMinutos(chamado.tempo_aguardando_suporte);  // Soma o tempo de espera
+                        }
+                        if (chamado.cancelar_suporte) {
+                            faixa.chamadosCancelados += 1;
+                        }
+                    }
+                });
+            });
+
+            // Calcula o tempo médio de espera
+            resultado.forEach(faixa => {
+                if (faixa.acionamentos > 0) {
+                    faixa.tempoMedioEspera = faixa.tempoTotalEspera / faixa.acionamentos;  // Média em minutos
+                }
+            });
+
+            return resultado;  // Retorna os dados consolidados
+        } catch (e) {
+            console.error('Erro no tratamento de dados do Dash:', e);
+            throw e;
+        }
+    }
+
     public static async dadosSuporteDash(): Promise<any> {
         try {
             const usuariosLogados = await this.usuariosLogadosDash();
             const dadosGeraisSuporte = await this.dadosGeraisSuporteDash();
-
-            // Obtém a hora atual
-            const agora = new Date();
-            const horaAtual = agora.getHours();
-            
-            // Criar faixas horárias de 07:00 até a hora atual
-            const intervalos = [];
-            for (let h = 7; h <= horaAtual; h++) {
-                intervalos.push(`${h.toString().padStart(2, '0')}:00:00`);
-            }
-
-            // Inicializa o resultado com as horas como chaves
-            const resultado: { [hora: string]: { usuariosLogados: number, chamadosSuporte: number } } = {};
-            intervalos.forEach(hora => {
-                resultado[hora] = { usuariosLogados: 0, chamadosSuporte: 0 };
-            });
-
-            // Contabiliza usuários logados em cada faixa horária
-            usuariosLogados.forEach(usuario => {
-                const hrLogin = usuario.hr_login.split(':').map(Number);
-                const hrLogoff = usuario.hr_logoff ? usuario.hr_logoff.split(':').map(Number) : null;
-
-                const inicio = hrLogin[0];
-                const fim = hrLogoff ? hrLogoff[0] : horaAtual;
-
-                for (let h = inicio; h <= fim; h++) {
-                    const horaKey = `${h.toString().padStart(2, '0')}:00:00`;
-                    if (resultado[horaKey]) {
-                        resultado[horaKey].usuariosLogados += 1;
-                    }
-                }
-            });
-            // Contabiliza chamados de suporte por hora
-            dadosGeraisSuporte.forEach(chamado => {
-                const horaChamado = chamado.hora_solicitacao_suporte.split(':').map(Number)[0];
-                const horaKey = `${horaChamado.toString().padStart(2, '0')}:00:00`;
-
-                if (resultado[horaKey]) {
-                    resultado[horaKey].chamadosSuporte += 1;
-                }
-            });
-            return { dadosDashboard: resultado };
+            const resultado = await this.tratamentoDadosDash(usuariosLogados, dadosGeraisSuporte);
+            return { dadosDashboard: resultado }; // Retorna os dados como esperado
         } catch (e) {
             console.error('Erro ao obter dados do dashboard:', e);
             throw e;
