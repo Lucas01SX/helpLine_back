@@ -1,5 +1,14 @@
 import pool from '../database/db';
 
+interface FaixaHoraria {
+  hora: string;
+  logados: number;
+  acionamentos: number;
+  tempoMedioEspera: number;  // Adicionando a propriedade
+  tempoTotalEspera: number;
+  chamadosCancelados: number;
+}
+
 export class DashboardService {
     private static async usuariosLogadosDash(): Promise<any> {
         try {
@@ -81,8 +90,8 @@ export class DashboardService {
                 return h < currentHour || (h === currentHour && m <= currentMinute);
             });
 
-            // Inicializa o array de resultado
-            const resultado = faixasFiltradas.map(faixa => ({
+            // Inicializa o array de resultado com o tipo correto
+            const resultado: FaixaHoraria[] = faixasFiltradas.map(faixa => ({
                 hora: faixa,
                 logados: 0,
                 acionamentos: 0,
@@ -135,7 +144,22 @@ export class DashboardService {
                 }
             });
 
-            return resultado;  // Retorna os dados consolidados
+            // Calcular o total geral
+            const total = {
+                logados: resultado[resultado.length - 1].logados, // Última hora de logados
+                acionamentos: resultado.reduce((acc, faixa) => acc + faixa.acionamentos, 0), // Soma dos acionamentos
+                tempoTotalEspera: resultado.reduce((acc, faixa) => acc + faixa.tempoTotalEspera, 0), // Soma do tempo total de espera
+                chamadosCancelados: resultado.reduce((acc, faixa) => acc + faixa.chamadosCancelados, 0), // Soma dos chamados cancelados
+            };
+
+            // Calcular o tempo médio de espera total
+            if (total.acionamentos > 0) {
+                total.tempoMedioEspera = total.tempoTotalEspera / total.acionamentos;
+            } else {
+                total.tempoMedioEspera = 0; // Caso não haja acionamentos, a média será 0
+            }
+
+            return { resultado, total };  // Retorna tanto os dados por hora quanto o total
         } catch (e) {
             console.error('Erro no tratamento de dados do Dash:', e);
             throw e;
