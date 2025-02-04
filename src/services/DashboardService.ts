@@ -126,38 +126,50 @@ export class DashboardService {
                 segmentos: {}  // Para agrupar os dados por segmentos
             }));
 
-            // Integrando com dados de filas e segmentos
-            const filas: FilaData[] = await FilasService.filasGerais();
-
-            filas.forEach((fila: FilaData) => {  
+            // Processando dados de filas e segmentos
+            dadosGerais.forEach((registro: any) => {
+                // Para cada faixa horária, verificamos se ela corresponde à hora de solicitação
                 resultado.forEach(faixa => {
-                    // Identifica o segmento, se é com ou sem acento
-                    const segmento = fila.segmento.includes('CARTÃO') ? 'CARTÃO' : fila.segmento;
+                    const [h, m] = faixa.hora.split(':').map(Number);
+                    const horaSolicitacao = new Date(registro.dt_solicitacao_suporte);
+                    const [horaChamado, minutoChamado] = [horaSolicitacao.getHours(), horaSolicitacao.getMinutes()];
 
-                    // Inicializa a estrutura de segmentos, filas e mcdus
-                    if (!faixa.segmentos[segmento]) {
-                        faixa.segmentos[segmento] = { filas: {} };
+                    // Verificando se a faixa horária corresponde à hora da solicitação
+                    if (horaChamado === h && minutoChamado <= m) {
+                        // Inicializando o segmento se necessário
+                        const segmento = registro.segmento;
+
+                        if (!faixa.segmentos[segmento]) {
+                            faixa.segmentos[segmento] = { filas: {} };
+                        }
+
+                        const fila = registro.fila;
+                        const mcdu = registro.mcdu;
+
+                        // Inicializando a fila no segmento
+                        if (!faixa.segmentos[segmento].filas[fila]) {
+                            faixa.segmentos[segmento].filas[fila] = { mcdus: {} };
+                        }
+
+                        // Inicializando o mcdu na fila
+                        if (!faixa.segmentos[segmento].filas[fila].mcdus[mcdu]) {
+                            faixa.segmentos[segmento].filas[fila].mcdus[mcdu] = {
+                                logados: 0,
+                                acionamentos: 0,
+                                tempoMedioEspera: 0,
+                                chamadosCancelados: 0
+                            };
+                        }
+
+                        // Pegando o objeto do MCDU para agregação de dados
+                        const filaSegmento = faixa.segmentos[segmento].filas[fila].mcdus[mcdu];
+
+                        // Atualizando os valores no MCDU
+                        filaSegmento.logados += 1;  // Exemplo de incremento
+                        filaSegmento.acionamentos += registro.acionamentos;
+                        filaSegmento.tempoMedioEspera += registro.tempo_aguardando_suporte;
+                        filaSegmento.chamadosCancelados += registro.cancelar_suporte;
                     }
-
-                    if (!faixa.segmentos[segmento].filas[fila.fila]) {
-                        faixa.segmentos[segmento].filas[fila.fila] = { mcdus: {} };
-                    }
-
-                    if (!faixa.segmentos[segmento].filas[fila.fila].mcdus[fila.mcdu]) {
-                        faixa.segmentos[segmento].filas[fila.fila].mcdus[fila.mcdu] = {
-                            logados: 0,
-                            acionamentos: 0,
-                            tempoMedioEspera: 0,
-                            chamadosCancelados: 0
-                        };
-                    }
-
-                    // Aqui você pode agregar ou modificar os valores conforme necessário
-                    const filaSegmento = faixa.segmentos[segmento].filas[fila.fila].mcdus[fila.mcdu];
-                    filaSegmento.logados += 1;  // Exemplo de incremento
-                    filaSegmento.acionamentos += fila.acionamentos;
-                    filaSegmento.tempoMedioEspera += fila.tempoMedioEspera;
-                    filaSegmento.chamadosCancelados += fila.chamadosCancelados;
                 });
             });
 
@@ -167,6 +179,7 @@ export class DashboardService {
             throw e;
         }
     }
+
 
 
     public static async dadosSuporteDash(): Promise<any> {
