@@ -20,11 +20,26 @@ interface SegmentoData {
     }
 }
 
-interface FilaData {
-    fila: string;
-    segmento: string;
-    mcdu: string;
-}
+// Ajuste a estrutura da filaData para incluir as propriedades necessárias
+type filaData = {
+  logados: number;
+  acionamentos: number;
+  tempoMedioEspera: number;
+  chamadosCancelados: number;
+};
+
+// Ajuste o tipo filaSegmento para ter um mapeamento de filas por segmento
+type filaSegmentoData = {
+  [segmento: string]: {
+    filas: {
+      [fila: string]: filaData;  // Aqui estamos mapeando cada fila dentro do segmento
+    };
+    acionamentos: number;
+    tempoMedioEspera: number;
+    chamadosCancelados: number;
+  };
+};
+
 
 export class DashboardService {
     private static async usuariosLogadosDash(): Promise<any> {
