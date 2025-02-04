@@ -48,7 +48,6 @@ export class DashboardService {
         }
     }
 
-    // Função para gerar os intervalos de hora
     private static gerarIntervalosHora(inicio: string = "07:00", fim: string = "21:00"): string[] {
         const intervalos: string[] = [];
         let horaInicio = new Date(`1970-01-01T${inicio}:00Z`);
@@ -85,7 +84,7 @@ export class DashboardService {
                 hora: faixa,
                 logados: 0,
                 acionamentos: 0,
-                tempoMedioEspera: 0,  // Manter como número (minutos)
+                tempoMedioEspera: null,  // Inicialmente null
                 tempoTotalEspera: 0,
                 chamadosCancelados: 0
             }));
@@ -133,7 +132,7 @@ export class DashboardService {
                 }
             });
 
-            return resultado;  // Retorna os dados com tempoMedioEspera como HH:mm:ss
+            return resultado;  // Retorna os dados com tempoMedioEspera como número (minutos)
         } catch (e) {
             console.error('Erro no tratamento de dados do Dash:', e);
             throw e;
