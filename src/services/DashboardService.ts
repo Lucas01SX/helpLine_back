@@ -182,20 +182,22 @@ export class DashboardService {
             tempoMedioEspera: faixa.tempoMedioEspera,
             chamadosCancelados: faixa.chamadosCancelados,
             segmentos: Object.fromEntries(
-                Object.entries(faixa.segmentos).map(([segmento, data]) => ({
-                    [segmento]: {
+                Object.entries(faixa.segmentos).map(([segmento, data]: [string, any]) => [
+                    segmento,
+                    {
                         mcdus: Object.fromEntries(
-                            Object.entries(data.mcdus).map(([mcdu, mcduData]) => ({
-                                [mcdu]: {
+                            Object.entries(data.mcdus).map(([mcdu, mcduData]: [string, any]) => [
+                                mcdu,
+                                {
                                     logados: mcduData.logados,
                                     acionamentos: mcduData.acionamentos,
                                     tempoMedioEspera: mcduData.tempoMedioEspera,
                                     chamadosCancelados: mcduData.chamadosCancelados
                                 }
-                            }))
+                            ])
                         )
                     }
-                }))
+                ])
             )
         }));
 
