@@ -3,7 +3,13 @@ import pool from '../database/db';
 export class DashboardService {
     private static async usuariosLogadosDash(): Promise<any> {
         try {
-            const result = await pool.query(`select distinct a.pk_id_usuario, a.hr_login, a.hr_logoff from suporte.tb_login_logoff_suporte a join suporte.tb_login_suporte b on a.pk_id_usuario = b.id_usuario join suporte.tb_skills_staff c on b.matricula = c.matricula::int where a.dt_login = current_date`);
+            const result = await pool.query(`
+                select distinct a.pk_id_usuario, a.hr_login, a.hr_logoff 
+                from suporte.tb_login_logoff_suporte a
+                join suporte.tb_login_suporte b on a.pk_id_usuario = b.id_usuario
+                join suporte.tb_skills_staff c on b.matricula = c.matricula::int
+                where a.dt_login = current_date
+            `);
             const usuarios = result.rows.map((usuario: any) => {
                 const hr_login = new Date(`1970-01-01T${usuario.hr_login}Z`);
                 hr_login.setHours(hr_login.getHours());
@@ -29,7 +35,12 @@ export class DashboardService {
 
     private static async dadosGeraisSuporteDash(): Promise<any> {
         try {
-            const result = await pool.query(`select a.id_suporte, a.hora_solicitacao_suporte, a.dt_solicitacao_suporte, a.tempo_aguardando_suporte, a.cancelar_suporte from suporte.tb_chamado_suporte a where a.dt_solicitacao_suporte = current_date`);
+            const result = await pool.query(`
+                select a.id_suporte, a.hora_solicitacao_suporte, a.dt_solicitacao_suporte,
+                       a.tempo_aguardando_suporte, a.cancelar_suporte
+                from suporte.tb_chamado_suporte a
+                where a.dt_solicitacao_suporte = current_date
+            `);
             return result.rows;
         } catch (e) {
             console.error('Erro ao obter dados gerais de suporte:', e);
@@ -75,6 +86,7 @@ export class DashboardService {
                 logados: 0,
                 acionamentos: 0,
                 tempoMedioEspera: 0,
+                tempoTotalEspera: 0,  // Para calcular a soma do tempo total de espera
                 chamadosCancelados: 0
             }));
 
@@ -103,7 +115,7 @@ export class DashboardService {
                     if (horaSolicitacaoMinutos >= faixaInicioMinutos && horaSolicitacaoMinutos <= faixaFimMinutos) {
                         faixa.acionamentos += 1;
                         if (chamado.tempo_aguardando_suporte && !chamado.cancelar_suporte) {
-                            faixa.tempoMedioEspera += chamado.tempo_aguardando_suporte;
+                            faixa.tempoTotalEspera += chamado.tempo_aguardando_suporte; // Somando tempo total de espera
                         }
                         if (chamado.cancelar_suporte) {
                             faixa.chamadosCancelados += 1;
@@ -115,7 +127,7 @@ export class DashboardService {
             // Calculando o tempo médio de espera
             resultado.forEach(faixa => {
                 if (faixa.acionamentos > 0) {
-                    faixa.tempoMedioEspera = faixa.tempoMedioEspera / faixa.acionamentos;
+                    faixa.tempoMedioEspera = faixa.tempoTotalEspera / faixa.acionamentos; // Calculando a média
                 }
             });
 
@@ -131,7 +143,7 @@ export class DashboardService {
             const usuariosLogados = await this.usuariosLogadosDash();
             const dadosGeraisSuporte = await this.dadosGeraisSuporteDash();
             const resultado = await this.tratamentoDadosDash(usuariosLogados, dadosGeraisSuporte);
-            return resultado;
+            return { dadosDashboard: resultado }; // Retornando os dados como esperado
         } catch (e) {
             console.error('Erro ao obter dados do dashboard:', e);
             throw e;
