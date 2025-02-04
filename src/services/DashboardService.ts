@@ -1,6 +1,22 @@
 import pool from '../database/db';
 import { FilasService } from './FilasService';  // Importando o serviço de filas
 
+interface FilaSegmentoData {
+    logados: number;
+    acionamentos: number;
+    tempoMedioEspera: number;
+    chamadosCancelados: number;
+}
+
+interface Faixa {
+    hora: string;
+    logados: number;
+    acionamentos: number;
+    tempoMedioEspera: number;
+    chamadosCancelados: number;
+    filas: { [key: string]: FilaSegmentoData };  // Tipando filas com chave string
+}
+
 export class DashboardService {
     private static async usuariosLogadosDash(): Promise<any> {
         try {
@@ -62,7 +78,7 @@ export class DashboardService {
         return h * 60 + m + s / 60;
     }
 
-    private static async tratamentoDadosDash(usuariosLogadosDash: any, dadosGeraisSuporteDash: any): Promise<any> {
+        private static async tratamentoDadosDash(usuariosLogadosDash: any, dadosGeraisSuporteDash: any): Promise<any> {
         const usuarios = usuariosLogadosDash;
         const dadosGerais = dadosGeraisSuporteDash;
         
@@ -77,7 +93,7 @@ export class DashboardService {
                 return h < currentHour || (h === currentHour && m <= currentMinute);
             });
 
-            const resultado = faixasFiltradas.map(faixa => ({
+            const resultado: Faixa[] = faixasFiltradas.map(faixa => ({
                 hora: faixa,
                 logados: 0,
                 acionamentos: 0,
@@ -92,6 +108,7 @@ export class DashboardService {
             // Inicializando as estruturas de filas e segmentos para cada faixa horária
             filas.forEach(fila => {
                 resultado.forEach(faixa => {
+                    // Inicializa as filas e segmentos dentro de cada faixa
                     if (!faixa.filas[fila.fila]) {
                         faixa.filas[fila.fila] = {
                             logados: 0,
@@ -122,12 +139,12 @@ export class DashboardService {
                     if (hrLoginMinutos <= faixaFimMinutos && hrLogoffMinutos >= faixaInicioMinutos) {
                         faixa.logados += 1;
                         // Acionando as filas e segmentos
-                        usuario.fila.split(',').forEach(fila => {
+                        usuario.fila.split(',').forEach((fila: string) => {  // Tipando fila como string
                             if (faixa.filas[fila]) {
                                 faixa.filas[fila].logados += 1;
                             }
                         });
-                        usuario.segmento.split(',').forEach(segmento => {
+                        usuario.segmento.split(',').forEach((segmento: string) => {  // Tipando segmento como string
                             if (faixa.filas[segmento]) {
                                 faixa.filas[segmento].logados += 1;
                             }
@@ -155,7 +172,7 @@ export class DashboardService {
                         }
 
                         // Acionamentos por fila e segmento
-                        chamado.fila.split(',').forEach(fila => {
+                        chamado.fila.split(',').forEach((fila: string) => {  // Tipando fila como string
                             if (faixa.filas[fila]) {
                                 faixa.filas[fila].acionamentos += 1;
                                 if (chamado.tempo_aguardando_suporte) {
@@ -168,7 +185,7 @@ export class DashboardService {
                             }
                         });
 
-                        chamado.segmento.split(',').forEach(segmento => {
+                        chamado.segmento.split(',').forEach((segmento: string) => {  // Tipando segmento como string
                             if (faixa.filas[segmento]) {
                                 faixa.filas[segmento].acionamentos += 1;
                                 if (chamado.tempo_aguardando_suporte) {
@@ -218,4 +235,5 @@ export class DashboardService {
         }
     }
 }
+
 
