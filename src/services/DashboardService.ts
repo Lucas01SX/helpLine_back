@@ -1,5 +1,5 @@
 import pool from '../database/db';
-import { FilasService } from './FilasService';  // Importando o serviço de filas
+import { FilasService } from './FilasServices';  // Importando o serviço de filas
 
 interface FilaSegmentoData {
     logados: number;
@@ -117,6 +117,7 @@ export class DashboardService {
                 return h < currentHour || (h === currentHour && m <= currentMinute);
             });
 
+            // Inicializando a estrutura de resultado
             const resultado: any[] = faixasFiltradas.map(faixa => ({
                 hora: faixa,
                 logados: 0,
@@ -169,6 +170,12 @@ export class DashboardService {
                         filaSegmento.acionamentos += registro.acionamentos;
                         filaSegmento.tempoMedioEspera += registro.tempo_aguardando_suporte;
                         filaSegmento.chamadosCancelados += registro.cancelar_suporte;
+
+                        // Atualizando os totais do segmento
+                        faixa.logados += 1;
+                        faixa.acionamentos += registro.acionamentos;
+                        faixa.tempoMedioEspera += registro.tempo_aguardando_suporte;
+                        faixa.chamadosCancelados += registro.cancelar_suporte;
                     }
                 });
             });
@@ -179,6 +186,7 @@ export class DashboardService {
             throw e;
         }
     }
+
 
 
 
