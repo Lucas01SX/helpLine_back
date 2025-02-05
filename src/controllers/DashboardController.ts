@@ -6,7 +6,7 @@ export class DashboardController {
     public async consultaDash(req:Request, res:Response):Promise <void> {
         try {
             const dadosDashboard = await DashboardService.dadosSuporteDash();
-            res.status(200).json({dadosDashboard});
+            res.status(200).json({dadosDashboard: dadosDashboard});
         } catch(error) {
             if (error instanceof Error) {
                 res.status(400).json({ message: error.message }); 
