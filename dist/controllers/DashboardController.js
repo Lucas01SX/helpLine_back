@@ -16,7 +16,7 @@ class DashboardController {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const dadosDashboard = yield DashboardService_1.DashboardService.dadosSuporteDash();
-                res.status(200).json({ dadosDashboard });
+                res.status(200).json({ dadosDashboard: dadosDashboard });
             }
             catch (error) {
                 if (error instanceof Error) {
