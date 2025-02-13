@@ -10,7 +10,7 @@ export class UserService {
             const dados = await client.query('select id_login, id_secao, pk_id_usuario, dt_login, hr_login, hr_logoff, status from suporte.tb_login_logoff_suporte where dt_login = current_date and pk_id_usuario = $1 and status = 1 and hr_logoff isnull', [id_usuario]);
             if (dados.rows.length === 0) {
                 await client.query('BEGIN');
-                await client.query('INSERT INTO suporte.tb_login_logoff_suporte (id_secao, pk_id_usuario, dt_login, hr_login, status) VALUES($1, $2, now()::date, now()::time, 1) ', [id_secao, id_usuario]);
+                await client.query(`INSERT INTO suporte.tb_login_logoff_suporte (id_secao, pk_id_usuario, dt_login, hr_login, status) VALUES($1, $2, now()::date, now()::time - '03:00:00'::time, 1) `, [id_secao, id_usuario]);
                 await client.query('COMMIT');
                 return 'Cadastro realizado com sucesso!';
             } else {
@@ -29,7 +29,7 @@ export class UserService {
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
-            await client.query('update suporte.tb_login_logoff_suporte  set status = 0, hr_logoff =  now()::time where id_secao = $1  ', [id_secao]);
+            await client.query(`update suporte.tb_login_logoff_suporte  set status = 0, hr_logoff =  now()::time - '03:00:00'::time where id_secao = $1  `, [id_secao]);
             await client.query('COMMIT');
         } catch (e) {
             await client.query('ROLLBACK');
@@ -152,7 +152,7 @@ export class UserService {
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
-            await client.query(`INSERT INTO suporte.tb_log_reset_senha (dt_reset_senha, hr_reset_senha, pk_id_usuario_resetado, pk_id_usuario_solicitante) VALUES(current_date, now()::time, $1, $2) `, [id_suporte_resetado,id_suporte_solicitacao]);
+            await client.query(`INSERT INTO suporte.tb_log_reset_senha (dt_reset_senha, hr_reset_senha, pk_id_usuario_resetado, pk_id_usuario_solicitante) VALUES(current_date, now()::time - '03:00:00'::time, $1, $2) `, [id_suporte_resetado,id_suporte_solicitacao]);
             await client.query('COMMIT');
         } catch (e) {
             await client.query('ROLLBACK');

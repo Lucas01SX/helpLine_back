@@ -18,13 +18,7 @@ class DashboardService {
     static usuariosLogadosDash() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const result = yield db_1.default.query(`
-                SELECT DISTINCT a.pk_id_usuario, a.hr_login, a.hr_logoff 
-                FROM suporte.tb_login_logoff_suporte a
-                JOIN suporte.tb_login_suporte b ON a.pk_id_usuario = b.id_usuario
-                JOIN suporte.tb_skills_staff c ON b.matricula = c.matricula::int
-                WHERE a.dt_login = CURRENT_DATE
-            `);
+                const result = yield db_1.default.query(` SELECT DISTINCT a.pk_id_usuario, a.hr_login, a.hr_logoff  FROM suporte.tb_login_logoff_suporte a JOIN suporte.tb_login_suporte b ON a.pk_id_usuario = b.id_usuario JOIN suporte.tb_skills_staff c ON b.matricula = c.matricula::int WHERE a.dt_login = CURRENT_DATE`);
                 const usuarios = result.rows.map((usuario) => {
                     const hr_login = new Date(`1970-01-01T${usuario.hr_login}Z`);
                     hr_login.setHours(hr_login.getHours());
@@ -48,12 +42,7 @@ class DashboardService {
     static dadosGeraisSuporteDash() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const result = yield db_1.default.query(`
-                SELECT a.id_suporte, a.hora_solicitacao_suporte, a.dt_solicitacao_suporte,
-                       a.tempo_aguardando_suporte, a.cancelar_suporte
-                FROM suporte.tb_chamado_suporte a
-                WHERE a.dt_solicitacao_suporte = CURRENT_DATE
-            `);
+                const result = yield db_1.default.query(`SELECT a.id_suporte, a.hora_solicitacao_suporte, a.dt_solicitacao_suporte, a.tempo_aguardando_suporte, a.cancelar_suporte FROM suporte.tb_chamado_suporte a WHERE a.dt_solicitacao_suporte = CURRENT_DATE`);
                 return result.rows;
             }
             catch (e) {
