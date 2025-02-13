@@ -22,21 +22,7 @@ type LogadosPorHora = {
 export class DashboardService {
   private static async usuariosLogadosDash(): Promise<any> {
     try {
-      const result = await pool.query(`
-        SELECT 
-          a.pk_id_usuario, 
-          string_agg(DISTINCT d.segmento, ',') AS segmento, 
-          string_agg(DISTINCT d.mcdu::text, ',') AS mcdu, 
-          string_agg(DISTINCT d.fila, ',') AS fila, 
-          max(a.hr_login) AS hr_login, 
-          max(a.hr_logoff) AS hr_logoff 
-        FROM suporte.tb_login_logoff_suporte a 
-        JOIN suporte.tb_login_suporte b ON a.pk_id_usuario = b.id_usuario 
-        JOIN suporte.tb_skills_staff c ON b.matricula = c.matricula::int 
-        JOIN trafego.tb_anexo1g d ON c.mcdu::int = d.mcdu 
-        WHERE a.dt_login = CURRENT_DATE 
-        GROUP BY a.pk_id_usuario
-      `);
+      const result = await pool.query(`SELECT DISTINCT ON (a.pk_id_usuario) a.pk_id_usuario, string_agg(DISTINCT d.segmento, ',') AS segmento, string_agg(DISTINCT d.mcdu::text, ',') AS mcdu, string_agg(DISTINCT d.fila, ',') AS fila, a.hr_login AS hr_login, a.hr_logoff AS hr_logoff FROM suporte.tb_login_logoff_suporte a JOIN suporte.tb_login_suporte b ON a.pk_id_usuario = b.id_usuario JOIN suporte.tb_skills_staff c ON b.matricula = c.matricula::int JOIN trafego.tb_anexo1g d ON c.mcdu::int = d.mcdu WHERE a.dt_login = CURRENT_DATE GROUP BY a.pk_id_usuario, a.hr_login, a.hr_logoff ORDER BY a.pk_id_usuario, a.hr_login DESC`);
 
       return result.rows.map((usuario: any) => ({
         id: usuario.pk_id_usuario,
