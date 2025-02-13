@@ -89,81 +89,86 @@ export class DashboardService {
   private static async tratamentoDadosDash(usuariosLogadosDash: any, dadosGeraisSuporteDash: any): Promise<any> {
     const usuarios = usuariosLogadosDash;
     const dadosGerais = dadosGeraisSuporteDash;
-    try {
-      const faixasHorarias = this.gerarIntervalosHora();
-      const resultado: FaixaHoraria[] = faixasHorarias.map(faixa => ({
-        hora: faixa,
-        logados: 0,
-        acionamentos: 0,
-        tempoMedioEspera: 0,
-        tempoTotalEspera: 0,
-        chamadosCancelados: 0
-      }));
+      try {
+          const faixasHorarias = this.gerarIntervalosHora();
+          const resultado: FaixaHoraria[] = faixasHorarias.map(faixa => ({
+              hora: faixa,
+              logados: 0,
+              acionamentos: 0,
+              tempoMedioEspera: 0,
+              tempoTotalEspera: 0,
+              chamadosCancelados: 0
+          }));
 
-      const logadosPorHora: LogadosPorHora = {};
+          const logadosPorHora: { horario: string, usuarios: { id_usuario: string, segmento: string, mcdu: string, fila: string }[] }[] = [];
 
-      // Inicializa logadosPorHora com todas as faixas horárias
-      faixasHorarias.forEach(faixa => {
-        logadosPorHora[faixa] = {};
-      });
+          // Preenche logadosPorHora com os usuários logados em cada faixa horária
+          faixasHorarias.forEach(faixa => {
+              const usuariosNaHora: { id_usuario: string, segmento: string, mcdu: string, fila: string }[] = [];
 
-      usuarios.forEach((usuario: any) => {
-        const hrLoginMinutos = this.horaParaMinutos(usuario.hr_login);
-        const hrLogoffMinutos = usuario.hr_logoff ? this.horaParaMinutos(usuario.hr_logoff) : Infinity;
+              usuarios.forEach((usuario: any) => {
+                  const hrLoginMinutos = this.horaParaMinutos(usuario.hr_login);
+                  const hrLogoffMinutos = usuario.hr_logoff ? this.horaParaMinutos(usuario.hr_logoff) : Infinity;
 
-        resultado.forEach(faixa => {
-          const faixaInicioMinutos = this.horaParaMinutos(faixa.hora);
-          const faixaFimMinutos = faixaInicioMinutos + 60;
+                  const faixaInicioMinutos = this.horaParaMinutos(faixa);
+                  const faixaFimMinutos = faixaInicioMinutos + 60;
 
-          if (hrLoginMinutos <= faixaFimMinutos && hrLogoffMinutos >= faixaInicioMinutos) {
-            faixa.logados += 1;
-            if (!logadosPorHora[faixa.hora]) logadosPorHora[faixa.hora] = {};
-            logadosPorHora[faixa.hora][usuario.id] = {
-              segmento: usuario.segmento,
-              mcdu: usuario.mcdu,
-              fila: usuario.fila
-            };
-          }
-        });
-      });
+                  if (hrLoginMinutos <= faixaFimMinutos && hrLogoffMinutos >= faixaInicioMinutos) {
+                      usuariosNaHora.push({
+                          id_usuario: usuario.id,
+                          segmento: usuario.segmento,
+                          mcdu: usuario.mcdu,
+                          fila: usuario.fila
+                      });
+                  }
+              });
 
-      dadosGerais.forEach((chamado: any) => {
-        const horaSolicitacaoMinutos = this.horaParaMinutos(chamado.hora_solicitacao_suporte);
-        resultado.forEach(faixa => {
-          const faixaInicioMinutos = this.horaParaMinutos(faixa.hora);
-          const faixaFimMinutos = faixaInicioMinutos + 60;
+              logadosPorHora.push({
+                  horario: faixa,
+                  usuarios: usuariosNaHora
+              });
+          });
 
-          if (horaSolicitacaoMinutos >= faixaInicioMinutos && horaSolicitacaoMinutos <= faixaFimMinutos) {
-            faixa.acionamentos += 1;
-            if (chamado.tempo_aguardando_suporte && !chamado.cancelar_suporte) {
-              faixa.tempoTotalEspera += this.horaParaMinutos(chamado.tempo_aguardando_suporte);
-            }
-            if (chamado.cancelar_suporte) {
-              faixa.chamadosCancelados += 1;
-            }
-          }
-        });
-      });
+          // Processa os dados gerais de suporte
+          dadosGerais.forEach((chamado: any) => {
+              const horaSolicitacaoMinutos = this.horaParaMinutos(chamado.hora_solicitacao_suporte);
+              resultado.forEach(faixa => {
+                  const faixaInicioMinutos = this.horaParaMinutos(faixa.hora);
+                  const faixaFimMinutos = faixaInicioMinutos + 60;
 
-      resultado.forEach(faixa => {
-        if (faixa.acionamentos > 0) {
-          faixa.tempoMedioEspera = faixa.tempoTotalEspera / faixa.acionamentos;
-        }
-      });
+                  if (horaSolicitacaoMinutos >= faixaInicioMinutos && horaSolicitacaoMinutos <= faixaFimMinutos) {
+                      faixa.acionamentos += 1;
+                      if (chamado.tempo_aguardando_suporte && !chamado.cancelar_suporte) {
+                          faixa.tempoTotalEspera += this.horaParaMinutos(chamado.tempo_aguardando_suporte);
+                      }
+                      if (chamado.cancelar_suporte) {
+                          faixa.chamadosCancelados += 1;
+                      }
+                  }
+              });
+          });
 
-      const total = {
-        logados: resultado[resultado.length - 1].logados,
-        acionamentos: resultado.reduce((acc, faixa) => acc + faixa.acionamentos, 0),
-        tempoTotalEspera: resultado.reduce((acc, faixa) => acc + faixa.tempoTotalEspera, 0),
-        chamadosCancelados: resultado.reduce((acc, faixa) => acc + faixa.chamadosCancelados, 0),
-        tempoMedioEspera: resultado.some(faixa => faixa.acionamentos > 0) ? resultado.reduce((acc, faixa) => acc + faixa.tempoTotalEspera, 0) / resultado.reduce((acc, faixa) => acc + faixa.acionamentos, 0) : 0
-      };
+          // Calcula o tempo médio de espera para cada faixa horária
+          resultado.forEach(faixa => {
+              if (faixa.acionamentos > 0) {
+                  faixa.tempoMedioEspera = faixa.tempoTotalEspera / faixa.acionamentos;
+              }
+          });
 
-      return { Logados: logadosPorHora, resultado, total };
-    } catch (e) {
-      console.error('Erro no tratamento de dados do Dash:', e);
-      throw e;
-    }
+          // Calcula os totais
+          const total = {
+              logados: resultado[resultado.length - 1].logados,
+              acionamentos: resultado.reduce((acc, faixa) => acc + faixa.acionamentos, 0),
+              tempoTotalEspera: resultado.reduce((acc, faixa) => acc + faixa.tempoTotalEspera, 0),
+              chamadosCancelados: resultado.reduce((acc, faixa) => acc + faixa.chamadosCancelados, 0),
+              tempoMedioEspera: resultado.some(faixa => faixa.acionamentos > 0) ? resultado.reduce((acc, faixa) => acc + faixa.tempoTotalEspera, 0) / resultado.reduce((acc, faixa) => acc + faixa.acionamentos, 0) : 0
+          };
+
+          return { Logados: logadosPorHora, resultado, total };
+      } catch (e) {
+          console.error('Erro no tratamento de dados do Dash:', e);
+          throw e;
+      }
   }
   public static async obterDashboard(): Promise<any> {
     try {
