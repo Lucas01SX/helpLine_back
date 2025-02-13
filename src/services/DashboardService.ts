@@ -160,4 +160,21 @@ export class DashboardService {
       throw e;
     }
   }
+  public static async obterDashboard(): Promise<any> {
+    try {
+      // 1. Obtém os usuários logados
+      const usuariosLogados = await this.usuariosLogadosDash();
+
+      // 2. Obtém os dados gerais de suporte
+      const dadosGerais = await this.dadosGeraisSuporteDash();
+
+      // 3. Processa e estrutura os dados
+      const resultado = await this.tratamentoDadosDash(usuariosLogados, dadosGerais);
+
+      return resultado;
+    } catch (e) {
+      console.error('Erro ao obter dados do dashboard:', e);
+      throw e;
+    }
+  }
 }
