@@ -178,3 +178,43 @@ export class DashboardService {
     }
   }
 }
+
+PS C:\Sistemas\suporte_back> npm run dev
+
+> backend_suporte@1.0.0 dev C:\Sistemas\suporte_back
+> ts-node src/app.ts
+
+C:\Sistemas\suporte_back\node_modules\ts-node\src\index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/controllers/DashboardController.ts:8:59 - error TS2339: Property 'dadosSuporteDash' does not exist on type 'typeof DashboardService'.
+
+8             const dadosDashboard = await DashboardService.dadosSuporteDash();
+                                                            ~~~~~~~~~~~~~~~~
+
+    at createTSError (C:\Sistemas\suporte_back\node_modules\ts-node\src\index.ts:859:12)
+    at reportTSError (C:\Sistemas\suporte_back\node_modules\ts-node\src\index.ts:863:19)
+    at getOutput (C:\Sistemas\suporte_back\node_modules\ts-node\src\index.ts:1077:36)
+    at Object.compile (C:\Sistemas\suporte_back\node_modules\ts-node\src\index.ts:1433:41)
+    at Module.m._compile (C:\Sistemas\suporte_back\node_modules\ts-node\src\index.ts:1617:30)
+    at Module._extensions..js (internal/modules/cjs/loader.js:1158:10)
+    at Object.require.extensions.<computed> [as .ts] (C:\Sistemas\suporte_back\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (internal/modules/cjs/loader.js:986:32)
+    at Function.Module._load (internal/modules/cjs/loader.js:879:14)
+    at Module.require (internal/modules/cjs/loader.js:1026:19) {
+  diagnosticCodes: [ 2339 ]
+}
+npm ERR! code ELIFECYCLE
+npm ERR! errno 1
+npm ERR! backend_suporte@1.0.0 dev: `ts-node src/app.ts`
+npm ERR! Exit status 1
+npm ERR!
+npm ERR! Failed at the backend_suporte@1.0.0 dev script.
+npm ERR! This is probably not a problem with npm. There is likely additional logging output above.
+
+npm ERR! A complete log of this run can be found in:
+npm ERR!     C:\Users\P566873\AppData\Roaming\npm-cache\_logs\2025-02-13T16_20_19_986Z-debug.log
+PS C:\Sistemas\suporte_back> ^C
+PS C:\Sistemas\suporte_back> ^C
+PS C:\Sistemas\suporte_back>
