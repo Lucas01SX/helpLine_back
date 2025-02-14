@@ -92,9 +92,6 @@ export class DashboardService {
                         // Converte o tempo de espera para minutos e soma ao total
                         const tempoEsperaMinutos = this.horaParaMinutos(chamado.tempo_aguardando_suporte);
                         faixa.segmentos[segmento].filas[fila].tempoTotalEspera += tempoEsperaMinutos;
-
-                        // Garante que o valor seja exibido com duas casas decimais
-                        faixa.segmentos[segmento].filas[fila].tempoTotalEspera = parseFloat(faixa.segmentos[segmento].filas[fila].tempoTotalEspera.toFixed(6));
                     }
 
                     if (chamado.cancelar_suporte) {
