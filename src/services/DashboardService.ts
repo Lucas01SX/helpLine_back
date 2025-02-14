@@ -8,9 +8,9 @@ interface FaixaHoraria {
 }
 
 export class DashboardService {
-    private static horaParaMinutos(hora: string): number {
-      const [h, m] = hora.split(':').map(Number);
-      return h * 60 + (m || 0); // Caso não haja minutos, assume 0
+  private static horaParaMinutos(hora: string): number {
+    const [h, m] = hora.split(':').map(Number);
+    return h * 60 + (m || 0); // Garante que os minutos sejam tratados como decimais
   }
 
   private static async usuariosLogadosDash(): Promise<any> {
@@ -90,8 +90,11 @@ export class DashboardService {
 
                     if (chamado.tempo_aguardando_suporte && !chamado.cancelar_suporte) {
                         // Converte o tempo de espera para minutos e soma ao total
-                        faixa.segmentos[segmento].filas[fila].tempoTotalEspera += 
-                            parseFloat(this.horaParaMinutos(chamado.tempo_aguardando_suporte).toFixed(2)); // Garante 2 casas decimais
+                        const tempoEsperaMinutos = this.horaParaMinutos(chamado.tempo_aguardando_suporte);
+                        faixa.segmentos[segmento].filas[fila].tempoTotalEspera += tempoEsperaMinutos;
+
+                        // Garante que o valor seja exibido com duas casas decimais
+                        faixa.segmentos[segmento].filas[fila].tempoTotalEspera = parseFloat(faixa.segmentos[segmento].filas[fila].tempoTotalEspera.toFixed(6));
                     }
 
                     if (chamado.cancelar_suporte) {
