@@ -12,23 +12,7 @@ interface FaixaHoraria {
 export class DashboardService {
   private static async usuariosLogadosDash(): Promise<any> {
     try {
-      const result = await pool.query(`
-        SELECT DISTINCT ON (a.pk_id_usuario) 
-          a.pk_id_usuario, 
-          string_agg(DISTINCT d.segmento, ',') AS segmento, 
-          string_agg(DISTINCT d.mcdu::text, ',') AS mcdu, 
-          string_agg(DISTINCT d.fila, ',') AS fila, 
-          a.hr_login AS hr_login, 
-          a.hr_logoff AS hr_logoff 
-        FROM suporte.tb_login_logoff_suporte a 
-        JOIN suporte.tb_login_suporte b ON a.pk_id_usuario = b.id_usuario 
-        JOIN suporte.tb_skills_staff c ON b.matricula = c.matricula::int 
-        JOIN trafego.tb_anexo1g d ON c.mcdu::int = d.mcdu 
-        WHERE a.dt_login = CURRENT_DATE 
-        GROUP BY a.pk_id_usuario, a.hr_login, a.hr_logoff 
-        ORDER BY a.pk_id_usuario, a.hr_login DESC
-      `);
-
+      const result = await pool.query(`SELECT DISTINCT ON (a.pk_id_usuario) a.pk_id_usuario, string_agg(DISTINCT d.segmento, ',') AS segmento, string_agg(DISTINCT d.mcdu::text, ',') AS mcdu, string_agg(DISTINCT d.fila, ',') AS fila, a.hr_login AS hr_login, a.hr_logoff AS hr_logoff  FROM suporte.tb_login_logoff_suporte a  JOIN suporte.tb_login_suporte b ON a.pk_id_usuario = b.id_usuario  JOIN suporte.tb_skills_staff c ON b.matricula = c.matricula::int  JOIN trafego.tb_anexo1g d ON c.mcdu::int = d.mcdu  WHERE a.dt_login = CURRENT_DATE  GROUP BY a.pk_id_usuario, a.hr_login, a.hr_logoff  ORDER BY a.pk_id_usuario, a.hr_login DESC`);
       return result.rows.map((usuario: any) => ({
         id: usuario.pk_id_usuario,
         segmento: usuario.segmento,
@@ -65,7 +49,7 @@ export class DashboardService {
     }
   }
 
-  private static gerarIntervalosHora(inicio: string = '07', fim: string = '21'): string[] {
+  private static gerarIntervalosHora(inicio: string = '08', fim: string = '21'): string[] {
     const intervalos: string[] = [];
     let horaInicio = new Date(`1970-01-01T${inicio}:00:00Z`);
     const horaFim = new Date(`1970-01-01T${fim}:00:00Z`);

@@ -5,7 +5,7 @@ import { DashboardService } from '../services/DashboardService';
 export class DashboardController { 
     public async consultaDash(req:Request, res:Response):Promise <void> {
         try {
-            const dadosDashboard = await DashboardService.dadosSuporteDash();
+            const dadosDashboard = await DashboardService.obterDashboard();
             res.status(200).json({dadosDashboard: dadosDashboard});
         } catch(error) {
             if (error instanceof Error) {
