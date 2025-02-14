@@ -80,7 +80,7 @@ export class DashboardService {
                     if (!faixa.segmentos[segmento].filas[fila]) {
                         faixa.segmentos[segmento].filas[fila] = {
                             acionamentos: 0,
-                            tempoTotalEspera: 0,
+                            tempoTotalEspera: 0, // Tempo total de espera em minutos
                             chamadosCancelados: 0
                         };
                     }
@@ -89,7 +89,9 @@ export class DashboardService {
                     faixa.segmentos[segmento].filas[fila].acionamentos += 1;
 
                     if (chamado.tempo_aguardando_suporte && !chamado.cancelar_suporte) {
-                        faixa.segmentos[segmento].filas[fila].tempoTotalEspera += this.horaParaMinutos(chamado.tempo_aguardando_suporte);
+                        // Converte o tempo de espera para minutos e soma ao total
+                        faixa.segmentos[segmento].filas[fila].tempoTotalEspera += 
+                            parseFloat(this.horaParaMinutos(chamado.tempo_aguardando_suporte).toFixed(2)); // Garante 2 casas decimais
                     }
 
                     if (chamado.cancelar_suporte) {
