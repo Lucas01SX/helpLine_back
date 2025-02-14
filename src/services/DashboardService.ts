@@ -3,7 +3,6 @@ import pool from '../database/db';
 interface FaixaHoraria {
   hora: string;
   acionamentos: number;
-  tempoMedioEspera: number;
   tempoTotalEspera: number;
   chamadosCancelados: number;
 }
@@ -81,7 +80,6 @@ export class DashboardService {
                     if (!faixa.segmentos[segmento].filas[fila]) {
                         faixa.segmentos[segmento].filas[fila] = {
                             acionamentos: 0,
-                            tempoMedioEspera: 0,
                             tempoTotalEspera: 0,
                             chamadosCancelados: 0
                         };
@@ -98,18 +96,6 @@ export class DashboardService {
                         faixa.segmentos[segmento].filas[fila].chamadosCancelados += 1;
                     }
                 }
-            });
-        });
-
-        // Cálculo do tempo médio de espera por fila
-        resultado.forEach(faixa => {
-            Object.keys(faixa.segmentos).forEach(segmento => {
-                Object.keys(faixa.segmentos[segmento].filas).forEach(fila => {
-                    const filaData = faixa.segmentos[segmento].filas[fila];
-                    if (filaData.acionamentos > 0) {
-                        filaData.tempoMedioEspera = filaData.tempoTotalEspera / filaData.acionamentos;
-                    }
-                });
             });
         });
 
