@@ -113,9 +113,39 @@ export class DashboardService {
             });
         });
 
+        // Processamento dos usuários logados
+        const logadosPorHora: { horario: string, usuarios: { id_usuario: string, segmento: string, mcdu: string, fila: string, logoff: boolean }[] }[] = [];
+
+        faixasHorarias.forEach(faixa => {
+            const usuariosNaHora: { id_usuario: string, segmento: string, mcdu: string, fila: string, logoff: boolean }[] = [];
+
+            usuariosLogadosDash.forEach((usuario: any) => {
+                const hrLoginMinutos = this.horaParaMinutos(usuario.hr_login);
+                const hrLogoffMinutos = usuario.hr_logoff ? this.horaParaMinutos(usuario.hr_logoff) : Infinity;
+
+                const faixaInicioMinutos = this.horaParaMinutos(faixa);
+                const faixaFimMinutos = faixaInicioMinutos + 60;
+
+                if (hrLoginMinutos <= faixaInicioMinutos && (hrLogoffMinutos >= faixaFimMinutos || usuario.hr_logoff === null)) {
+                    usuariosNaHora.push({
+                        id_usuario: usuario.id,
+                        segmento: usuario.segmento,
+                        mcdu: usuario.mcdu,
+                        fila: usuario.fila,
+                        logoff: usuario.hr_logoff !== null // Marca se o usuário deslogou ou não
+                    });
+                }
+            });
+
+            logadosPorHora.push({
+                horario: faixa,
+                usuarios: usuariosNaHora
+            });
+        });
+
         // Estrutura de retorno incluindo logados e resultado
         return { 
-            logados: usuariosLogadosDash, 
+            logados: logadosPorHora, 
             resultado 
         };
     } catch (e) {
