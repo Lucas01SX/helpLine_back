@@ -13,6 +13,7 @@ export class DashboardService {
       const [h, m] = hora.split(':').map(Number);
       return h * 60 + (m || 0); // Caso não haja minutos, assume 0
   }
+
   private static async usuariosLogadosDash(): Promise<any> {
     try {
       const result = await pool.query(`SELECT DISTINCT ON (a.pk_id_usuario) a.pk_id_usuario, string_agg(DISTINCT d.segmento, ',') AS segmento, string_agg(DISTINCT d.mcdu::text, ',') AS mcdu, string_agg(DISTINCT d.fila, ',') AS fila, a.hr_login AS hr_login, a.hr_logoff AS hr_logoff  FROM suporte.tb_login_logoff_suporte a  JOIN suporte.tb_login_suporte b ON a.pk_id_usuario = b.id_usuario  JOIN suporte.tb_skills_staff c ON b.matricula = c.matricula::int  JOIN trafego.tb_anexo1g d ON c.mcdu::int = d.mcdu  WHERE a.dt_login = CURRENT_DATE  GROUP BY a.pk_id_usuario, a.hr_login, a.hr_logoff  ORDER BY a.pk_id_usuario, a.hr_login DESC`);
@@ -112,7 +113,11 @@ export class DashboardService {
             });
         });
 
-        return { resultado };
+        // Estrutura de retorno incluindo logados e resultado
+        return { 
+            logados: usuariosLogadosDash, 
+            resultado 
+        };
     } catch (e) {
         console.error('Erro no tratamento de dados do Dash:', e);
         throw e;
