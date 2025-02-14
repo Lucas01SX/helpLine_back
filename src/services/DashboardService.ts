@@ -140,7 +140,7 @@ export class DashboardService {
         console.error('Erro no tratamento de dados do Dash:', e);
         throw e;
     }
-  }
+  } 
 
   public static async obterDashboard(): Promise<any> {
     try {
