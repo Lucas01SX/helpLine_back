@@ -150,6 +150,11 @@ io.on('connection', (socket) => {
             callback(result);
         });
     });
+    socket.on('demanda_suporte', (data, callback) => {
+        (0, socketMiddleware_1.socketMiddleware)('demandaSuporte')(data, (result) => {
+            callback(result);
+        });
+    });
     socket.on('disconnect', () => {
         //
     });

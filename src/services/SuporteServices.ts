@@ -158,5 +158,35 @@ export class SuporteServices {
             throw e;
         } 
     }
+    public static async cadastrarDemanda(idSuporte:number,horario_descricao:string, descricao:string): Promise<any> {
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            const cadastroDemanda = await client.query('insert into suporte.tb_descricao_suporte (pk_id_suporte, horario_descricao, descricao) values ($1, $2, $3)', [idSuporte, horario_descricao, descricao]);
+            await client.query('COMMIT');
+            return cadastroDemanda;
+        } catch (e) {
+            await client.query('ROLLBACK');
+            console.error('Erro na inserção do suporte: ', e);
+            throw e;
+        }finally {
+            client.release();
+        }
+    }
+    public static async cadastrarAvaliacao(idSuporte:number,horario_avaliacao:string, avaliacao:string): Promise<any> {
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            const cadastroDemanda = await client.query('insert into suporte.tb_avaliacao_suporte (pk_id_suporte,horario_avaliacao, avaliacao) values ($1, $2, $3)', [idSuporte, horario_avaliacao, avaliacao]);
+            await client.query('COMMIT');
+            return cadastroDemanda;
+        } catch (e) {
+            await client.query('ROLLBACK');
+            console.error('Erro na inserção do suporte: ', e);
+            throw e;
+        }finally {
+            client.release();
+        }
+    }
 
 }

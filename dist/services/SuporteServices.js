@@ -198,5 +198,24 @@ class SuporteServices {
             }
         });
     }
+    static cadastrarDemanda(idSuporte, horario_avaliacao, descricao) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const client = yield db_1.default.connect();
+            try {
+                yield client.query('BEGIN');
+                yield client.query('INSERT INTO suporte.tb_descricao_suporte (pk_id_suporte, horario_descricao, descricao) VALUES (1$, 2$, 3$) ', [idSuporte, horario_avaliacao, descricao]);
+                yield client.query('COMMIT');
+                return idSuporte;
+            }
+            catch (e) {
+                yield client.query('ROLLBACK');
+                console.error('Erro ao incluir cadastro de demanda: ', e);
+                throw e;
+            }
+            finally {
+                client.release();
+            }
+        });
+    }
 }
 exports.SuporteServices = SuporteServices;

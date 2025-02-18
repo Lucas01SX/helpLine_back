@@ -13,6 +13,9 @@ const routeMap: { [key: string]: (req: express.Request, res: express.Response) =
     consultarSuporte: (req, res) => suporteController.consultarSuporte(req, res),
     finalizarSuporte: (req, res) => suporteController.finalizarSuporte(req, res),
     atualizarSuporteManager: (req, res) => suporteController.consultarSuporteGestao(req, res),
+    cadastrarDemanda:(req, res) => suporteController.cadastrarDemanda(req, res),
+    cadastrarAvaliacao:(req, res) => suporteController.cadastrarAvaliacao(req, res),
 };
 
 export { router as suporteRoutes, routeMap };
+
