@@ -167,7 +167,7 @@ io.on('connection', (socket) => {
         } catch (err) {
             console.error('Erro ao verificar tokens:', err);
         }
-    }, 90 * 60 * 1000);
+    }, 180 * 60 * 1000);
 });
 
 const shutdownPool = async () => {

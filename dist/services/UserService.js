@@ -25,7 +25,7 @@ class UserService {
                 const dados = yield client.query('select id_login, id_secao, pk_id_usuario, dt_login, hr_login, hr_logoff, status from suporte.tb_login_logoff_suporte where dt_login = current_date and pk_id_usuario = $1 and status = 1 and hr_logoff isnull', [id_usuario]);
                 if (dados.rows.length === 0) {
                     yield client.query('BEGIN');
-                    yield client.query('INSERT INTO suporte.tb_login_logoff_suporte (id_secao, pk_id_usuario, dt_login, hr_login, status) VALUES($1, $2, now()::date, now()::time, 1) ', [id_secao, id_usuario]);
+                    yield client.query(`INSERT INTO suporte.tb_login_logoff_suporte (id_secao, pk_id_usuario, dt_login, hr_login, status) VALUES($1, $2, now()::date, now()::time - '03:00:00'::time, 1) `, [id_secao, id_usuario]);
                     yield client.query('COMMIT');
                     return 'Cadastro realizado com sucesso!';
                 }
@@ -49,7 +49,7 @@ class UserService {
             const client = yield db_1.default.connect();
             try {
                 yield client.query('BEGIN');
-                yield client.query('update suporte.tb_login_logoff_suporte  set status = 0, hr_logoff =  now()::time where id_secao = $1  ', [id_secao]);
+                yield client.query(`update suporte.tb_login_logoff_suporte  set status = 0, hr_logoff =  now()::time - '03:00:00'::time where id_secao = $1  `, [id_secao]);
                 yield client.query('COMMIT');
             }
             catch (e) {
@@ -171,7 +171,7 @@ class UserService {
     static usuariosLogados() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const result = yield db_1.default.query(`select b.login, b.nome, b.codfuncao, e.de_funcao, string_agg(d.segmento, ',') as segmento, string_agg(c.fila, ',') as fila, string_agg(c.mcdu, ',') as mcdu from suporte.tb_login_logoff_suporte a join suporte.tb_login_suporte b on a.pk_id_usuario = b.id_usuario join suporte.tb_skills_staff c on b.matricula = c.matricula::int join trafego.tb_anexo1g d on c.mcdu::int = d.mcdu join trafego.tb_funcao e on e.co_funcao::int = b.codfuncao where a.dt_login = current_date and a.status = 1 and c.excluida = false group by b.login, b.nome, e.de_funcao, b.codfuncao order by b.nome asc`);
+                const result = yield db_1.default.query(`select b.login, b.nome, b.codfuncao, e.de_funcao, string_agg(d.segmento, ',') as segmento, string_agg(c.fila, ',') as fila, string_agg(c.mcdu, ',') as mcdu, max(a.hr_login) as hr_login, max(f.hora_inicio_suporte) as hora_inicio_suporte, max(f.hora_fim_suporte) as hora_fim_suporte from suporte.tb_login_logoff_suporte a join suporte.tb_login_suporte b on a.pk_id_usuario = b.id_usuario join suporte.tb_skills_staff c on b.matricula = c.matricula::int join trafego.tb_anexo1g d on c.mcdu::int = d.mcdu join trafego.tb_funcao e on e.co_funcao::int = b.codfuncao left join suporte.tb_chamado_suporte f on a.pk_id_usuario = f.pk_id_prestador_suporte and a.dt_login = f.dt_inicio_suporte where a.dt_login = current_date and a.status = 1 and c.excluida = false group by b.login, b.nome, e.de_funcao, b.codfuncao order by hr_login, hora_fim_suporte desc`);
                 return result.rows;
             }
             catch (e) {
@@ -197,7 +197,7 @@ class UserService {
             const client = yield db_1.default.connect();
             try {
                 yield client.query('BEGIN');
-                yield client.query(`INSERT INTO suporte.tb_log_reset_senha (dt_reset_senha, hr_reset_senha, pk_id_usuario_resetado, pk_id_usuario_solicitante) VALUES(current_date, now()::time, $1, $2) `, [id_suporte_resetado, id_suporte_solicitacao]);
+                yield client.query(`INSERT INTO suporte.tb_log_reset_senha (dt_reset_senha, hr_reset_senha, pk_id_usuario_resetado, pk_id_usuario_solicitante) VALUES(current_date, now()::time - '03:00:00'::time, $1, $2) `, [id_suporte_resetado, id_suporte_solicitacao]);
                 yield client.query('COMMIT');
             }
             catch (e) {
