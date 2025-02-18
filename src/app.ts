@@ -8,6 +8,7 @@ import testeRoutes from './routes/TesteRoutes';
 import pool from './database/db';
 import { socketMiddleware } from './middlewares/socketMiddleware';
 import { updateCache } from './services/cacheService';
+import { data } from 'cheerio/dist/commonjs/api/attributes';
 
 const updateInterval = 60 * 60 * 1000;
 const port = 3000;
@@ -141,6 +142,18 @@ io.on('connection', (socket) => {
             callback(result);
         });
     });
+    
+    socket.on('demanda_suporte', (data, callback) => {
+        socketMiddleware('cadastrarDemanda')(data,(result) =>{
+        return;
+        });
+    });
+    socket.on('avaliacao_suporte', (data, callback) => {
+        socketMiddleware('cadastrarAvaliacao')(data,(result) =>{
+        return;
+        });
+    });
+
     socket.on('disconnect', () => {
         //
     });

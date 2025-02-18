@@ -116,5 +116,22 @@ class SuporteController {
             }
         });
     }
+    cadastrarDemanda(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { idSuporte, horario_descricao, descricao } = req.body;
+            try {
+                const id_suporte = yield SuporteServices_1.SuporteServices.cadastrarDemanda(idSuporte, horario_descricao, descricao);
+                res.status(200).json({ message: 'Descricao de atendimento cadastrada', id_suporte });
+            }
+            catch (error) {
+                if (error instanceof Error) {
+                    res.status(400).json({ message: error.message });
+                }
+                else {
+                    res.status(500).json({ message: 'Erro desconhecido na controller', error });
+                }
+            }
+        });
+    }
 }
 exports.SuporteController = SuporteController;

@@ -150,6 +150,11 @@ io.on('connection', (socket) => {
             callback(result);
         });
     });
+    socket.on('demanda_suporte', (data, callback) => {
+        (0, socketMiddleware_1.socketMiddleware)('demandaSuporte')(data, (result) => {
+            callback(result);
+        });
+    });
     socket.on('disconnect', () => {
         //
     });
@@ -164,7 +169,7 @@ io.on('connection', (socket) => {
         catch (err) {
             console.error('Erro ao verificar tokens:', err);
         }
-    }), 5 * 60 * 1000);
+    }), 90 * 60 * 1000);
 });
 const shutdownPool = () => __awaiter(void 0, void 0, void 0, function* () {
     if (!poolEnded) {

@@ -1,10 +1,10 @@
 import express  from "express";
-import { UserController } from "../controllers/UserController";
+import { SuporteController } from "../controllers/SuporteController";
 
-const userController = new UserController();
+const suporteController = new SuporteController();
 const router = express.Router();
 
-// router.get('/gerais', (req, res) => userController.consultaDash(req, res));
+router.post('/gerais', (req, res) => suporteController.cadastrarDemanda(req, res));
 
 
 
