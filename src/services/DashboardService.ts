@@ -13,9 +13,10 @@ export class DashboardService {
     return h * 60 + (m || 0); // Garante que os minutos sejam tratados como decimais
   }
 
+
   private static async usuariosLogadosDash(): Promise<any> {
     try {
-      const result = await pool.query(`SELECT DISTINCT ON (a.pk_id_usuario) a.pk_id_usuario, STRING_AGG(DISTINCT d.segmento, ',') AS segmento, STRING_AGG(DISTINCT d.mcdu::TEXT, ',') AS mcdu, STRING_AGG(DISTINCT d.fila, ',') AS fila, a.hr_login AS ultimo_login, a.hr_logoff AS ultimo_logoff FROM suporte.tb_login_logoff_suporte a JOIN suporte.tb_login_suporte b ON a.pk_id_usuario = b.id_usuario JOIN suporte.tb_skills_staff c ON b.matricula = c.matricula::INT JOIN trafego.tb_anexo1g d ON c.mcdu::INT = d.mcdu WHERE a.dt_login = CURRENT_DATE group by A.pk_id_usuario, a.id_login ORDER BY a.pk_id_usuario, a.id_login desc`);
+      const result = await pool.query(`SELECT DISTINCT ON (a.pk_id_usuario) a.pk_id_usuario, STRING_AGG(DISTINCT d.segmento, ',') AS segmento, STRING_AGG(DISTINCT d.mcdu::TEXT, ',') AS mcdu, STRING_AGG(DISTINCT d.fila, ',') AS fila, a.hr_login, a.hr_logoff FROM suporte.tb_login_logoff_suporte a JOIN suporte.tb_login_suporte b ON a.pk_id_usuario = b.id_usuario JOIN suporte.tb_skills_staff c ON b.matricula = c.matricula::INT JOIN trafego.tb_anexo1g d ON c.mcdu::INT = d.mcdu WHERE a.dt_login = CURRENT_DATE group by A.pk_id_usuario, a.id_login ORDER BY a.pk_id_usuario, a.id_login desc`);
       return result.rows.map((usuario: any) => ({
         id: usuario.pk_id_usuario,
         segmento: usuario.segmento,
@@ -42,6 +43,11 @@ export class DashboardService {
       throw e;
     }
   }
+  private static obterHoraAtual(): string {
+    const agora = new Date()
+    const horas = agora.getHours().toString().padStart(2,'0');
+    return horas;
+  }
 
   private static gerarIntervalosHora(inicio: string = '08', fim: string = '21'): string[] {
     const intervalos: string[] = [];
@@ -58,7 +64,10 @@ export class DashboardService {
   private static async tratamentoDadosDash(usuariosLogadosDash: any, dadosGeraisSuporteDash: any): Promise<any> {
     try {
         const faixasHorarias = this.gerarIntervalosHora();
-        const resultado: any[] = faixasHorarias.map(faixa => ({
+        const horaAtual = this.obterHoraAtual();
+        const faixasFiltradas = faixasHorarias.filter( faixa => faixa <= horaAtual);
+
+        const resultado: any[] = faixasFiltradas.map(faixa => ({
             horario: faixa,
             segmentos: {}
         }));
@@ -104,7 +113,7 @@ export class DashboardService {
         // Processamento dos usuários logados
         const logadosPorHora: { horario: string, usuarios: { id_usuario: string, segmento: string, mcdu: string, fila: string, logoff: boolean }[] }[] = [];
 
-        faixasHorarias.forEach(faixa => {
+        faixasFiltradas.forEach(faixa => {
             const usuariosNaHora: { id_usuario: string, segmento: string, mcdu: string, fila: string, logoff: boolean }[] = [];
 
             usuariosLogadosDash.forEach((usuario: any) => {
