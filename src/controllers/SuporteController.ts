@@ -84,8 +84,6 @@ export class SuporteController {
     }
     public async cadastrarDemanda(req: Request, res: Response): Promise<void> {
         const {idSuporte, horario_descricao, descricao} = req.body
-        //console.log(req.body)
-        //console.log(idSuporte, horario_descricao, descricao)
         try {
             const id_suporte = await SuporteServices.cadastrarDemanda(idSuporte, horario_descricao, descricao);
             res.status(200).json({ message: 'Descricao de atendimento cadastrada',id_suporte });
