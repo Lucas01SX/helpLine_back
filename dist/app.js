@@ -151,8 +151,13 @@ io.on('connection', (socket) => {
         });
     });
     socket.on('demanda_suporte', (data, callback) => {
-        (0, socketMiddleware_1.socketMiddleware)('demandaSuporte')(data, (result) => {
-            callback(result);
+        (0, socketMiddleware_1.socketMiddleware)('cadastrarDemanda')(data, (result) => {
+            return;
+        });
+    });
+    socket.on('avaliacao_suporte', (data, callback) => {
+        (0, socketMiddleware_1.socketMiddleware)('cadastrarAvaliacao')(data, (result) => {
+            return;
         });
     });
     socket.on('disconnect', () => {

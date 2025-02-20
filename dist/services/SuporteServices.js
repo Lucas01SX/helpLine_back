@@ -198,18 +198,37 @@ class SuporteServices {
             }
         });
     }
-    static cadastrarDemanda(idSuporte, horario_avaliacao, descricao) {
+    static cadastrarDemanda(idSuporte, horario_descricao, descricao) {
         return __awaiter(this, void 0, void 0, function* () {
             const client = yield db_1.default.connect();
             try {
                 yield client.query('BEGIN');
-                yield client.query('INSERT INTO suporte.tb_descricao_suporte (pk_id_suporte, horario_descricao, descricao) VALUES (1$, 2$, 3$) ', [idSuporte, horario_avaliacao, descricao]);
+                const cadastroDemanda = yield client.query('insert into suporte.tb_descricao_suporte (pk_id_suporte, horario_descricao, descricao) values ($1, $2, $3)', [idSuporte, horario_descricao, descricao]);
                 yield client.query('COMMIT');
-                return idSuporte;
+                return cadastroDemanda;
             }
             catch (e) {
                 yield client.query('ROLLBACK');
-                console.error('Erro ao incluir cadastro de demanda: ', e);
+                console.error('Erro na inserção do suporte: ', e);
+                throw e;
+            }
+            finally {
+                client.release();
+            }
+        });
+    }
+    static cadastrarAvaliacao(idSuporte, horario_avaliacao, avaliacao) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const client = yield db_1.default.connect();
+            try {
+                yield client.query('BEGIN');
+                const cadastroDemanda = yield client.query('insert into suporte.tb_avaliacao_suporte (pk_id_suporte,horario_avaliacao, avaliacao) values ($1, $2, $3)', [idSuporte, horario_avaliacao, avaliacao]);
+                yield client.query('COMMIT');
+                return cadastroDemanda;
+            }
+            catch (e) {
+                yield client.query('ROLLBACK');
+                console.error('Erro na inserção do suporte: ', e);
                 throw e;
             }
             finally {

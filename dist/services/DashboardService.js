@@ -109,7 +109,7 @@ class DashboardService {
                 });
                 // Processamento dos usuários logados
                 const logadosPorHora = [];
-                faixasHorarias.forEach(faixa => {
+                faixasFiltradas.forEach(faixa => {
                     const usuariosNaHora = [];
                     usuariosLogadosDash.forEach((usuario) => {
                         const hrLoginMinutos = this.horaParaMinutos(usuario.hr_login);

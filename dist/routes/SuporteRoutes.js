@@ -16,6 +16,7 @@ const routeMap = {
     consultarSuporte: (req, res) => suporteController.consultarSuporte(req, res),
     finalizarSuporte: (req, res) => suporteController.finalizarSuporte(req, res),
     atualizarSuporteManager: (req, res) => suporteController.consultarSuporteGestao(req, res),
-    demandaSuporte: (req, res) => suporteController.cadastrarDemanda(req, res)
+    cadastrarDemanda: (req, res) => suporteController.cadastrarDemanda(req, res),
+    cadastrarAvaliacao: (req, res) => suporteController.cadastrarAvaliacao(req, res),
 };
 exports.routeMap = routeMap;
