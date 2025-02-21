@@ -1,4 +1,6 @@
 import pool from '../database/db';
+import { format, zonedTimeToUtc, utcToZonedTime } from 'date-fns-tz';
+
 
 interface FaixaHoraria {
   hora: string;
@@ -43,31 +45,27 @@ export class DashboardService {
     }
   }
   private static obterHoraAtual(): string {
+    const timeZone = 'America/Sao_Paulo';
     const agora = new Date();
-    const options: Intl.DateTimeFormatOptions = {
-        timeZone: 'America/Sao_Paulo',
-        hour: '2-digit', // Corrigido para o tipo correto
-        hour12: false
-    };
-    return new Intl.DateTimeFormat('pt-BR', options).format(agora);
+    const horaAtual = utcToZonedTime(agora, timeZone); // Converte para o fuso horário do Brasil
+    return format(horaAtual, 'HH', { timeZone }); // Retorna apenas a hora no formato 24h
   }
 
   private static gerarIntervalosHora(inicio: string = '08', fim: string = '21'): string[] {
-      const intervalos: string[] = [];
-      let horaInicio = new Date(`1970-01-01T${inicio}:00:00Z`);
-      const horaFim = new Date(`1970-01-01T${fim}:00:00Z`);
+    const intervalos: string[] = [];
+    const timeZone = 'America/Sao_Paulo';
 
-      while (horaInicio <= horaFim) {
-          const options: Intl.DateTimeFormatOptions = {
-              timeZone: 'America/Sao_Paulo',
-              hour: '2-digit', // Corrigido para o tipo correto
-              hour12: false
-          };
-          const horaFormatada = new Intl.DateTimeFormat('pt-BR', options).format(horaInicio);
-          intervalos.push(horaFormatada);
-          horaInicio.setHours(horaInicio.getHours() + 1);
-      }
-      return intervalos;
+    // Cria uma data base no fuso horário do Brasil
+    let horaInicio = zonedTimeToUtc(`1970-01-01T${inicio}:00:00`, timeZone);
+    const horaFim = zonedTimeToUtc(`1970-01-01T${fim}:00:00`, timeZone);
+
+    while (horaInicio <= horaFim) {
+      const horaFormatada = format(horaInicio, 'HH', { timeZone }); // Formata a hora no fuso horário do Brasil
+      intervalos.push(horaFormatada);
+      horaInicio.setHours(horaInicio.getHours() + 1); // Avança uma hora
+    }
+
+    return intervalos;
   }
   private static async tratamentoDadosDash(usuariosLogadosDash: any, dadosGeraisSuporteDash: any): Promise<any> {
     try {
