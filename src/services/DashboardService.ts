@@ -51,20 +51,25 @@ export class DashboardService {
 
   private static gerarIntervalosHora(inicio: string = '08', fim: string = '21'): string[] {
     const intervalos: string[] = [];
-    let horaInicio = new Date(`1970-01-01T${inicio}:00:00Z`);
-    const horaFim = new Date(`1970-01-01T${fim}:00:00Z`);
+    let horaInicio = new Date(`1970-01-01T${inicio}:00:00`); // CORRETO: Não força UTC
+    const horaFim = new Date(`1970-01-01T${fim}:00:00`);
 
     while (horaInicio <= horaFim) {
-      intervalos.push(horaInicio.toISOString().substr(11, 2)); // Pegando apenas HH
-      horaInicio.setHours(horaInicio.getHours() + 1);
+        intervalos.push(horaInicio.toTimeString().substr(0, 2)); // Pegando apenas HH
+        horaInicio.setHours(horaInicio.getHours() + 1);
     }
     return intervalos;
   }
 
+
   private static async tratamentoDadosDash(usuariosLogadosDash: any, dadosGeraisSuporteDash: any): Promise<any> {
     try {
         const faixasHorarias = this.gerarIntervalosHora();
-        const horaAtual = this.obterHoraAtual();
+        const horaAtual = new Intl.DateTimeFormat('pt-BR', {
+          hour: '2-digit',
+          timeZone: 'America/Sao_Paulo',
+          hour12: false
+        }).format(new Date());
         const faixasFiltradas = faixasHorarias.filter( faixa => faixa <= horaAtual);
 
         const resultado: any[] = faixasFiltradas.map(faixa => ({
