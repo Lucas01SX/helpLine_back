@@ -52,15 +52,24 @@ class DashboardService {
     }
     static obterHoraAtual() {
         const agora = new Date();
-        const horas = agora.getHours().toString().padStart(2, '0');
-        return horas;
+        agora.setHours(agora.getHours() - 3); // Subtrai 3 horas do horário atual
+        return agora.toLocaleString('pt-BR', {
+            hour: '2-digit',
+            hour12: false
+        });
     }
     static gerarIntervalosHora(inicio = '08', fim = '21') {
         const intervalos = [];
-        let horaInicio = new Date(`1970-01-01T${inicio}:00:00Z`);
-        const horaFim = new Date(`1970-01-01T${fim}:00:00Z`);
+        let horaInicio = new Date();
+        horaInicio.setHours(parseInt(inicio), 0, 0, 0);
+        const horaFim = new Date();
+        horaFim.setHours(parseInt(fim), 0, 0, 0);
         while (horaInicio <= horaFim) {
-            intervalos.push(horaInicio.toISOString().substr(11, 2)); // Pegando apenas HH
+            intervalos.push(horaInicio.toLocaleString('pt-BR', {
+                timeZone: 'America/Sao_Paulo',
+                hour: '2-digit',
+                hour12: false
+            }));
             horaInicio.setHours(horaInicio.getHours() + 1);
         }
         return intervalos;
@@ -69,8 +78,8 @@ class DashboardService {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const faixasHorarias = this.gerarIntervalosHora();
-                const horaAtual = this.obterHoraAtual();
-                const faixasFiltradas = faixasHorarias.filter(faixa => faixa <= horaAtual);
+                const horaAtual = parseInt(this.obterHoraAtual()); // Obtém a hora atual ajustada
+                const faixasFiltradas = faixasHorarias.filter(faixa => parseInt(faixa) <= horaAtual);
                 const resultado = faixasFiltradas.map(faixa => ({
                     horario: faixa,
                     segmentos: {}

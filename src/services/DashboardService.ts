@@ -44,40 +44,28 @@ export class DashboardService {
     }
   }
   private static obterHoraAtual(): string {
-      const agora = new Date();
-      agora.setHours(agora.getHours() - 3); // Subtrai 3 horas do horário atual
-      return agora.toLocaleString('pt-BR', { 
-          hour: '2-digit', 
-          hour12: false 
-      });
+    const agora = new Date()
+    const horas = agora.getHours().toString().padStart(2,'0');
+    return horas;
   }
 
+  private static gerarIntervalosHora(inicio: string = '08', fim: string = '21'): string[] {
+    const intervalos: string[] = [];
+    let horaInicio = new Date(`1970-01-01T${inicio}:00:00Z`);
+    const horaFim = new Date(`1970-01-01T${fim}:00:00Z`);
 
-  private static gerarIntervalosHora(inicio: string = '08'): string[] {
-      const intervalos: string[] = [];
-      let horaInicio = new Date();
-      horaInicio.setHours(parseInt(inicio), 0, 0, 0); // Define o horário inicial (08:00)
-
-      const horaAtual = new Date();
-      horaAtual.setHours(horaAtual.getHours() - 3); // Ajusta para o horário do Brasil
-
-      while (horaInicio <= horaAtual) {
-          intervalos.push(horaInicio.toLocaleString('pt-BR', { 
-              timeZone: 'America/Sao_Paulo', 
-              hour: '2-digit', 
-              minute: '2-digit',
-              hour12: false 
-          }));
-          horaInicio.setHours(horaInicio.getHours() + 1); // Avança uma hora
-      }
-      return intervalos;
+    while (horaInicio <= horaFim) {
+      intervalos.push(horaInicio.toISOString().substr(11, 2)); // Pegando apenas HH
+      horaInicio.setHours(horaInicio.getHours() + 1);
+    }
+    return intervalos;
   }
+
   private static async tratamentoDadosDash(usuariosLogadosDash: any, dadosGeraisSuporteDash: any): Promise<any> {
     try {
         const faixasHorarias = this.gerarIntervalosHora();
-        const horaAtual = parseInt(this.obterHoraAtual()); // Obtém a hora atual ajustada
-        const faixasFiltradas = faixasHorarias.filter(faixa => parseInt(faixa) <= horaAtual);
-
+        const horaAtual = this.obterHoraAtual();
+        const faixasFiltradas = faixasHorarias.filter( faixa => faixa <= horaAtual);
 
         const resultado: any[] = faixasFiltradas.map(faixa => ({
             horario: faixa,
