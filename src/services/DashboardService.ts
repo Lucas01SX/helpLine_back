@@ -45,8 +45,8 @@ export class DashboardService {
   }
   private static obterHoraAtual(): string {
       const agora = new Date();
+      agora.setHours(agora.getHours() - 3); // Subtrai 3 horas do horário atual
       return agora.toLocaleString('pt-BR', { 
-          timeZone: 'America/Sao_Paulo', 
           hour: '2-digit', 
           hour12: false 
       });
