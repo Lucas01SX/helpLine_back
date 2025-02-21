@@ -53,28 +53,25 @@ export class DashboardService {
   }
 
 
-  private static gerarIntervalosHora(inicio: string = '08', fim: string = '21'): string[] {
-    const intervalos: string[] = [];
-    let horaInicio = new Date();
-    horaInicio.setHours(parseInt(inicio), 0, 0, 0);
-    
-    const horaFim = new Date();
-    horaFim.setHours(parseInt(fim), 0, 0, 0);
+  private static gerarIntervalosHora(inicio: string = '08'): string[] {
+      const intervalos: string[] = [];
+      let horaInicio = new Date();
+      horaInicio.setHours(parseInt(inicio), 0, 0, 0); // Define o horário inicial (08:00)
 
-    while (horaInicio <= horaFim) {
-        intervalos.push(horaInicio.toLocaleString('pt-BR', { 
-            timeZone: 'America/Sao_Paulo', 
-            hour: '2-digit', 
-            hour12: false 
-        }));
-        horaInicio.setHours(horaInicio.getHours() + 1);
-    }
-    return intervalos;
+      const horaAtual = new Date();
+      horaAtual.setHours(horaAtual.getHours() - 3); // Ajusta para o horário do Brasil
+
+      while (horaInicio <= horaAtual) {
+          intervalos.push(horaInicio.toLocaleString('pt-BR', { 
+              timeZone: 'America/Sao_Paulo', 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: false 
+          }));
+          horaInicio.setHours(horaInicio.getHours() + 1); // Avança uma hora
+      }
+      return intervalos;
   }
-
-
-
-
   private static async tratamentoDadosDash(usuariosLogadosDash: any, dadosGeraisSuporteDash: any): Promise<any> {
     try {
         const faixasHorarias = this.gerarIntervalosHora();
