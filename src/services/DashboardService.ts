@@ -78,9 +78,9 @@ export class DashboardService {
   private static async tratamentoDadosDash(usuariosLogadosDash: any, dadosGeraisSuporteDash: any): Promise<any> {
     try {
         const faixasHorarias = this.gerarIntervalosHora();
-        const horaAtual = this.obterHoraAtual();
+        const horaAtual = parseInt(this.obterHoraAtual()); // Obtém a hora atual ajustada
+        const faixasFiltradas = faixasHorarias.filter(faixa => parseInt(faixa) <= horaAtual);
 
-        const faixasFiltradas = faixasHorarias.filter(faixa => parseInt(faixa) <= parseInt(horaAtual));
 
         const resultado: any[] = faixasFiltradas.map(faixa => ({
             horario: faixa,
