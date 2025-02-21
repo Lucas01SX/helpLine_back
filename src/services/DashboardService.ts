@@ -44,33 +44,43 @@ export class DashboardService {
     }
   }
   private static obterHoraAtual(): string {
-    const agora = new Date()
-    const horas = agora.getHours().toString().padStart(2,'0');
-    return horas;
+      const agora = new Date();
+      return agora.toLocaleString('pt-BR', { 
+          timeZone: 'America/Sao_Paulo', 
+          hour: '2-digit', 
+          hour12: false 
+      });
   }
+
 
   private static gerarIntervalosHora(inicio: string = '08', fim: string = '21'): string[] {
     const intervalos: string[] = [];
-    let horaInicio = new Date(`1970-01-01T${inicio}:00:00`); // CORRETO: Não força UTC
-    const horaFim = new Date(`1970-01-01T${fim}:00:00`);
+    let horaInicio = new Date();
+    horaInicio.setHours(parseInt(inicio), 0, 0, 0);
+    
+    const horaFim = new Date();
+    horaFim.setHours(parseInt(fim), 0, 0, 0);
 
     while (horaInicio <= horaFim) {
-        intervalos.push(horaInicio.toTimeString().substr(0, 2)); // Pegando apenas HH
+        intervalos.push(horaInicio.toLocaleString('pt-BR', { 
+            timeZone: 'America/Sao_Paulo', 
+            hour: '2-digit', 
+            hour12: false 
+        }));
         horaInicio.setHours(horaInicio.getHours() + 1);
     }
     return intervalos;
   }
 
 
+
+
   private static async tratamentoDadosDash(usuariosLogadosDash: any, dadosGeraisSuporteDash: any): Promise<any> {
     try {
         const faixasHorarias = this.gerarIntervalosHora();
-        const horaAtual = new Intl.DateTimeFormat('pt-BR', {
-          hour: '2-digit',
-          timeZone: 'America/Sao_Paulo',
-          hour12: false
-        }).format(new Date());
-        const faixasFiltradas = faixasHorarias.filter( faixa => faixa <= horaAtual);
+        const horaAtual = this.obterHoraAtual();
+
+        const faixasFiltradas = faixasHorarias.filter(faixa => parseInt(faixa) <= parseInt(horaAtual));
 
         const resultado: any[] = faixasFiltradas.map(faixa => ({
             horario: faixa,
