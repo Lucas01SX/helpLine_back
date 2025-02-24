@@ -14,6 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DashboardService = void 0;
 const db_1 = __importDefault(require("../database/db"));
+const date_fns_tz_1 = require("date-fns-tz");
 class DashboardService {
     static horaParaMinutos(hora) {
         const [h, m] = hora.split(':').map(Number);
@@ -51,26 +52,21 @@ class DashboardService {
         });
     }
     static obterHoraAtual() {
+        const timeZone = 'America/Sao_Paulo';
         const agora = new Date();
-        agora.setHours(agora.getHours() - 3); // Subtrai 3 horas do horário atual
-        return agora.toLocaleString('pt-BR', {
-            hour: '2-digit',
-            hour12: false
-        });
+        const horaAtual = (0, date_fns_tz_1.utcToZonedTime)(agora, timeZone); // Converte para o fuso horário do Brasil
+        return (0, date_fns_tz_1.format)(horaAtual, 'HH', { timeZone }); // Retorna apenas a hora no formato 24h
     }
     static gerarIntervalosHora(inicio = '08', fim = '21') {
         const intervalos = [];
-        let horaInicio = new Date();
-        horaInicio.setHours(parseInt(inicio), 0, 0, 0);
-        const horaFim = new Date();
-        horaFim.setHours(parseInt(fim), 0, 0, 0);
+        const timeZone = 'America/Sao_Paulo';
+        // Cria uma data base no fuso horário do Brasil
+        let horaInicio = (0, date_fns_tz_1.zonedTimeToUtc)(`1970-01-01T${inicio}:00:00`, timeZone);
+        const horaFim = (0, date_fns_tz_1.zonedTimeToUtc)(`1970-01-01T${fim}:00:00`, timeZone);
         while (horaInicio <= horaFim) {
-            intervalos.push(horaInicio.toLocaleString('pt-BR', {
-                timeZone: 'America/Sao_Paulo',
-                hour: '2-digit',
-                hour12: false
-            }));
-            horaInicio.setHours(horaInicio.getHours() + 1);
+            const horaFormatada = (0, date_fns_tz_1.format)(horaInicio, 'HH', { timeZone }); // Formata a hora no fuso horário do Brasil
+            intervalos.push(horaFormatada);
+            horaInicio.setHours(horaInicio.getHours() + 1); // Avança uma hora
         }
         return intervalos;
     }
@@ -78,8 +74,8 @@ class DashboardService {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const faixasHorarias = this.gerarIntervalosHora();
-                const horaAtual = parseInt(this.obterHoraAtual()); // Obtém a hora atual ajustada
-                const faixasFiltradas = faixasHorarias.filter(faixa => parseInt(faixa) <= horaAtual);
+                const horaAtual = this.obterHoraAtual();
+                const faixasFiltradas = faixasHorarias.filter(faixa => faixa <= horaAtual);
                 const resultado = faixasFiltradas.map(faixa => ({
                     horario: faixa,
                     segmentos: {}

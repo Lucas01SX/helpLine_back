@@ -22,7 +22,7 @@
     "cheerio": "^1.0.0",
     "cors": "^2.8.5",
     "date-fns": "^2.16.1",
-    "date-fns-tz": "^1.0.12",
+    "date-fns-tz": "^1.1.4",
     "express": "^4.21.2",
     "https": "^1.0.0",
     "jsonwebtoken": "^9.0.2",
