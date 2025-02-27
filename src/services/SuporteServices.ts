@@ -173,8 +173,13 @@ export class SuporteServices {
             client.release();
         }
     }
-    public static async cadastrarAvaliacao(idSuporte:number,horario_avaliacao:string, avaliacao:string): Promise<any> {
+    public static async cadastrarAvaliacao(idSuporte:number,horario_avaliacao:string, avaliacao:number): Promise<any> {
         const client = await pool.connect();
+        if (avaliacao==0){
+            console.log(avaliacao)
+            console.error('Suporte não avaliado')
+        }
+        else{
         try {
             await client.query('BEGIN');
             const cadastroDemanda = await client.query('insert into suporte.tb_avaliacao_suporte (pk_id_suporte,horario_avaliacao, avaliacao) values ($1, $2, $3)', [idSuporte, horario_avaliacao, avaliacao]);
@@ -186,6 +191,7 @@ export class SuporteServices {
             throw e;
         }finally {
             client.release();
+        }
         }
     }
 
