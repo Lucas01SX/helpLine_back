@@ -184,11 +184,16 @@ const shutdownPool = async () => {
 
 const gracefulShutdown = () => {
     console.log('Iniciando encerramento gracioso...');
+
+    // 🔴 Notifica todos os clientes antes de fechar o servidor
+    io.emit('servidor_fechando', { message: 'O servidor será desligado. Você será desconectado.' });
+
     servidor.close(async () => {
         console.log('Servidor HTTP fechado');
         await shutdownPool();
         process.exit(0);
     });
+
     setTimeout(() => {
         console.error('Forçando encerramento...');
         process.exit(1);
