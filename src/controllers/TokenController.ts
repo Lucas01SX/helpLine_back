@@ -5,8 +5,8 @@ export class TokenController {
     public async atualizarToken(req: Request, res: Response): Promise<void> {
         const { token } = req.body;
         try {
-            await TokenService.atualizarToken(token);
-            res.status(200).json({ message: 'Token atualizado com sucesso!' });
+            const dados = await TokenService.atualizarToken(token);
+            res.status(200).json({ message: dados });
         } catch (error) {
             if (error instanceof Error) {
                 res.status(400).json({ message: error.message }); 

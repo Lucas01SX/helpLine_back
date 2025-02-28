@@ -3,8 +3,13 @@ import { UserService } from "./UserService";
 export class TokenService {
     private static tokens: { [key: string]: number } = {};
 
-    public static async atualizarToken(token: string): Promise<void> {
-        this.tokens[token] = Date.now();
+    public static async atualizarToken(token: string): Promise<string> {
+        try {
+            this.tokens[token] = Date.now();
+            return "Token atualizado!";
+        } catch (error) {
+            return "Token não atualizado"
+        }
     }
 
     public static async verificarTokens(): Promise<any> {
