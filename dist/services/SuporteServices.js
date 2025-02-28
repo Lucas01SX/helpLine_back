@@ -220,19 +220,25 @@ class SuporteServices {
     static cadastrarAvaliacao(idSuporte, horario_avaliacao, avaliacao) {
         return __awaiter(this, void 0, void 0, function* () {
             const client = yield db_1.default.connect();
-            try {
-                yield client.query('BEGIN');
-                const cadastroDemanda = yield client.query('insert into suporte.tb_avaliacao_suporte (pk_id_suporte,horario_avaliacao, avaliacao) values ($1, $2, $3)', [idSuporte, horario_avaliacao, avaliacao]);
-                yield client.query('COMMIT');
-                return cadastroDemanda;
+            if (avaliacao == 0) {
+                console.log(avaliacao);
+                console.error('Suporte não avaliado');
             }
-            catch (e) {
-                yield client.query('ROLLBACK');
-                console.error('Erro na inserção do suporte: ', e);
-                throw e;
-            }
-            finally {
-                client.release();
+            else {
+                try {
+                    yield client.query('BEGIN');
+                    const cadastroDemanda = yield client.query('insert into suporte.tb_avaliacao_suporte (pk_id_suporte,horario_avaliacao, avaliacao) values ($1, $2, $3)', [idSuporte, horario_avaliacao, avaliacao]);
+                    yield client.query('COMMIT');
+                    return cadastroDemanda;
+                }
+                catch (e) {
+                    yield client.query('ROLLBACK');
+                    console.error('Erro na inserção do suporte: ', e);
+                    throw e;
+                }
+                finally {
+                    client.release();
+                }
             }
         });
     }

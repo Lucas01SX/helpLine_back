@@ -14,7 +14,13 @@ const UserService_1 = require("./UserService");
 class TokenService {
     static atualizarToken(token) {
         return __awaiter(this, void 0, void 0, function* () {
-            this.tokens[token] = Date.now();
+            try {
+                this.tokens[token] = Date.now();
+                return "Token atualizado!";
+            }
+            catch (error) {
+                return "Token não atualizado";
+            }
         });
     }
     static verificarTokens() {
