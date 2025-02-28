@@ -20,4 +20,4 @@ RUN npm run build
 EXPOSE 3000
 
 # Comando para iniciar o servidor no modo de desenvolvimento
-CMD ["npm", "run", "dev"]
+CMD ["npm", "start"]
