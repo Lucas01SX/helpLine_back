@@ -182,35 +182,19 @@ const shutdownPool = async () => {
     }
 };
 
-const gracefulShutdown = async () => {
-    console.log('⚠️ Iniciando encerramento gracioso...');
-
-    // 🔴 Notifica todos os clientes antes de fechar conexões
-    io.sockets.emit('servidor_fechando', { message: 'O servidor será desligado. Você será desconectado.' });
-
-    // 🔵 Aguarde um tempo curto para garantir que os clientes recebam a mensagem
-    await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 segundos
-
-    // 🔵 Fechar todas as conexões ativas de sockets
-    io.close(() => {
-        console.log('✅ WebSockets fechados.');
-    });
-
-    // 🔵 Fechar o servidor HTTP
+const gracefulShutdown = () => {
+    console.log('Iniciando encerramento gracioso...');
     servidor.close(async () => {
-        console.log('✅ Servidor HTTP fechado.');
-        await shutdownPool(); // Fecha conexões com o banco de dados
+        console.log('Servidor HTTP fechado');
+        await shutdownPool();
         process.exit(0);
     });
-
-    // 🔴 Se demorar muito, força encerramento
     setTimeout(() => {
-        console.error('⏳ Tempo limite atingido. Forçando encerramento...');
+        console.error('Forçando encerramento...');
         process.exit(1);
     }, 10000);
 };
 
-// Captura sinais para desligamento seguro
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
 
