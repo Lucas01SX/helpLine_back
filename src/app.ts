@@ -188,17 +188,21 @@ const gracefulShutdown = () => {
     // 🔴 Notifica todos os clientes antes de fechar o servidor
     io.emit('servidor_fechando', { message: 'O servidor será desligado. Você será desconectado.' });
 
-    servidor.close(async () => {
-        console.log('Servidor HTTP fechado');
-        await shutdownPool();
-        process.exit(0);
-    });
+    // Aguarde um pequeno tempo antes de fechar o servidor para garantir que os clientes recebam a mensagem
+    setTimeout(() => {
+        servidor.close(async () => {
+            console.log('Servidor HTTP fechado');
+            await shutdownPool();
+            process.exit(0);
+        });
+    }, 2000); // Espera 2 segundos antes de continuar o shutdown
 
     setTimeout(() => {
         console.error('Forçando encerramento...');
         process.exit(1);
     }, 10000);
 };
+
 
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
