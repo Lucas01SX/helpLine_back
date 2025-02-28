@@ -80,7 +80,7 @@ export class RequestsSuport {
             const operadores = Object.keys(data).map(key => {
                 const fila = data[key];
                 if (fila.a && typeof fila.a === 'object') {
-                    return Object.values(fila.a).filter((agente: any) => agente[0] === "Em Uso" && agente[1] === "interna").map((agente: any) => ({
+                    return Object.values(fila.a).filter((agente: any) => (agente[0] === "Em Uso" && agente[1] === "interna") || (agente[0] === "Entrante" && agente[1] === "entrante")).map((agente: any) => ({
                         nome: agente[10],
                         telefone: agente[13],
                         uniqueId: agente[29]
