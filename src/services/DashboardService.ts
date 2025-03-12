@@ -118,6 +118,8 @@ export class DashboardService {
     try {
       const usuariosLogados = await this.usuariosLogadosDash();
       const dadosGerais = await this.dadosGeraisSuporteDash();
+      console.log(usuariosLogados);
+      console.log(dadosGerais)
       const resultado = await this.tratamentoDadosDash(usuariosLogados, dadosGerais);
 
       return resultado;
