@@ -1,18 +1,6 @@
 import pool from '../database/db';
 
-interface FaixaHoraria {
-  hora: string;
-  acionamentos: number;
-  tempoTotalEspera: number;
-  chamadosCancelados: number;
-}
-
 export class DashboardService {
-  private static horaParaMinutos(hora: string): number {
-    const [h, m] = hora.split(':').map(Number);
-    return h * 60 + (m || 0);
-  }
-
   private static async usuariosLogadosDash(): Promise<any> {
     try {
       const result = await pool.query(`
@@ -20,7 +8,8 @@ export class DashboardService {
           STRING_AGG(DISTINCT d.segmento, ',') AS segmento, 
           STRING_AGG(DISTINCT d.mcdu::TEXT, ',') AS mcdu, 
           STRING_AGG(DISTINCT d.fila, ',') AS fila, 
-          a.hr_login, a.hr_logoff 
+          TO_CHAR(a.hr_login, 'HH24') AS hr_login,
+          TO_CHAR(a.hr_logoff, 'HH24') AS hr_logoff
         FROM suporte.tb_login_logoff_suporte a 
         JOIN suporte.tb_login_suporte b ON a.pk_id_usuario = b.id_usuario 
         JOIN suporte.tb_skills_staff c ON b.matricula = c.matricula::INT 
@@ -29,16 +18,18 @@ export class DashboardService {
         GROUP BY a.pk_id_usuario, a.id_login 
         ORDER BY a.pk_id_usuario, a.id_login DESC`);
 
+      console.log("🚀 Dados brutos do banco (Usuários logados):", result.rows);
+
       return result.rows.map((usuario: any) => ({
         id: usuario.pk_id_usuario,
         segmento: usuario.segmento,
         mcdu: usuario.mcdu,
         fila: usuario.fila,
-        hr_login: usuario.hr_login ? String(usuario.hr_login).split(':')[0].padStart(2, '0') : '00',
-        hr_logoff: usuario.hr_logoff ? String(usuario.hr_logoff).split(':')[0].padStart(2, '0') : '00',
+        hr_login: usuario.hr_login.padStart(2, '0'),
+        hr_logoff: usuario.hr_logoff ? usuario.hr_logoff.padStart(2, '0') : '00',
       }));
     } catch (e) {
-      console.error('Erro ao obter usuários logados:', e);
+      console.error('❌ Erro ao obter usuários logados:', e);
       throw e;
     }
   }
@@ -47,7 +38,7 @@ export class DashboardService {
     try {
       const result = await pool.query(`
         SELECT a.id_suporte, b.segmento, b.mcdu, b.fila, 
-          a.hora_solicitacao_suporte, 
+          TO_CHAR(a.hora_solicitacao_suporte, 'HH24:MI:SS') AS hora_solicitacao_suporte, 
           a.tempo_aguardando_suporte, 
           a.cancelar_suporte 
         FROM suporte.tb_chamado_suporte a 
@@ -56,75 +47,87 @@ export class DashboardService {
         GROUP BY a.id_suporte, b.segmento, b.mcdu, b.fila, 
           a.hora_solicitacao_suporte, a.tempo_aguardando_suporte, a.cancelar_suporte`);
 
+      console.log("🚀 Dados brutos do banco (Chamados):", JSON.stringify(result.rows, null, 2));
+
       return result.rows.map((chamado: any) => ({
         ...chamado,
         hora_solicitacao_suporte: chamado.hora_solicitacao_suporte
-          ? String(chamado.hora_solicitacao_suporte).split(':')[0].padStart(2, '0')
+          ? chamado.hora_solicitacao_suporte.match(/\d+/)?.[0].padStart(2, '0')
           : '00',
       }));
     } catch (e) {
-      console.error('Erro ao obter dados gerais de suporte:', e);
+      console.error('❌ Erro ao obter dados gerais de suporte:', e);
       throw e;
     }
   }
 
   private static async tratamentoDadosDash(usuariosLogadosDash: any, dadosGeraisSuporteDash: any): Promise<any> {
     try {
-        const resultado: any[] = [];
+      console.log("🚀 Todos os horários antes do filtro:", 
+        dadosGeraisSuporteDash.map((d: any) => d.hora_solicitacao_suporte)
+      );
 
-        dadosGeraisSuporteDash.forEach((chamado: any) => {
-            const horaSolicitacao = chamado.hora_solicitacao_suporte 
-                ? parseInt(String(chamado.hora_solicitacao_suporte).split(':')[0]) 
-                : 0;
+      const resultado: any[] = [];
 
-            if (!isNaN(horaSolicitacao) && horaSolicitacao >= 8 && horaSolicitacao <= 21) {
-                let faixa = resultado.find(item => item.horario === chamado.hora_solicitacao_suporte);
+      dadosGeraisSuporteDash.forEach((chamado: any) => {
+        const horaSolicitacao = chamado.hora_solicitacao_suporte 
+          ? parseInt(chamado.hora_solicitacao_suporte) 
+          : 0;
 
-                if (!faixa) {
-                    faixa = {
-                        horario: chamado.hora_solicitacao_suporte,
-                        segmentos: {}
-                    };
-                    resultado.push(faixa);
-                }
+        console.log(`🔍 Processando horário: ${horaSolicitacao}`);
 
-                const segmento = chamado.segmento;
-                const fila = chamado.fila;
+        if (!isNaN(horaSolicitacao) && horaSolicitacao >= 8 && horaSolicitacao <= 21) {
+          let faixa = resultado.find(item => item.horario === chamado.hora_solicitacao_suporte);
 
-                if (!faixa.segmentos[segmento]) {
-                    faixa.segmentos[segmento] = { filas: {} };
-                }
+          if (!faixa) {
+            faixa = {
+              horario: chamado.hora_solicitacao_suporte,
+              segmentos: {}
+            };
+            resultado.push(faixa);
+          }
 
-                if (!faixa.segmentos[segmento].filas[fila]) {
-                    faixa.segmentos[segmento].filas[fila] = {
-                        acionamentos: 0,
-                        tempoTotalEspera: 0,
-                        chamadosCancelados: 0
-                    };
-                }
+          const segmento = chamado.segmento;
+          const fila = chamado.fila;
 
-                faixa.segmentos[segmento].filas[fila].acionamentos += 1;
-            }
-        });
+          if (!faixa.segmentos[segmento]) {
+            faixa.segmentos[segmento] = { filas: {} };
+          }
 
-        return { resultado };
+          if (!faixa.segmentos[segmento].filas[fila]) {
+            faixa.segmentos[segmento].filas[fila] = {
+              acionamentos: 0,
+              tempoTotalEspera: 0,
+              chamadosCancelados: 0
+            };
+          }
+
+          faixa.segmentos[segmento].filas[fila].acionamentos += 1;
+        }
+      });
+
+      console.log("✅ Horários finais após filtragem:", resultado.map((r: any) => r.horario));
+
+      return { resultado };
     } catch (e) {
-        console.error('Erro no tratamento de dados do Dash:', e);
-        throw e;
+      console.error('❌ Erro no tratamento de dados do Dash:', e);
+      throw e;
     }
   }
 
   public static async obterDashboard(): Promise<any> {
     try {
+      console.log("🚀 Iniciando obtenção do Dashboard...");
+
       const usuariosLogados = await this.usuariosLogadosDash();
       const dadosGerais = await this.dadosGeraisSuporteDash();
-      console.log(usuariosLogados);
-      console.log(dadosGerais)
       const resultado = await this.tratamentoDadosDash(usuariosLogados, dadosGerais);
+
+      console.log("✅ Dashboard gerado com sucesso!");
 
       return resultado;
     } catch (e) {
-      console.error('Erro ao obter dados do dashboard:', e);
+      console.error('❌ Erro ao obter dados do dashboard:', e);
       throw e;
     }
   }
