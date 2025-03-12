@@ -60,7 +60,7 @@ export class DashboardService {
           a.cancelar_suporte 
         FROM suporte.tb_chamado_suporte a 
         JOIN trafego.tb_anexo1g b ON a.mcdu::int = b.mcdu 
-        WHERE a.dt_solicitacao_suporte = CURRENT_DATE 
+        WHERE a.dt_solicitacao_suporte AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo' = CURRENT_DATE 
         GROUP BY a.id_suporte, b.segmento, b.mcdu, b.fila, 
           a.hora_solicitacao_suporte, a.tempo_aguardando_suporte, a.cancelar_suporte`
       );
