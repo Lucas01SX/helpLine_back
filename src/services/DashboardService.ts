@@ -1,6 +1,5 @@
 import pool from '../database/db';
-import { format, zonedTimeToUtc, utcToZonedTime } from 'date-fns-tz';
-
+import { format } from 'date-fns';
 
 interface FaixaHoraria {
   hora: string;
@@ -12,7 +11,7 @@ interface FaixaHoraria {
 export class DashboardService {
   private static horaParaMinutos(hora: string): number {
     const [h, m] = hora.split(':').map(Number);
-    return h * 60 + (m || 0); // Garante que os minutos sejam tratados como decimais
+    return h * 60 + (m || 0);
   }
 
   private static async usuariosLogadosDash(): Promise<any> {
@@ -23,8 +22,8 @@ export class DashboardService {
         segmento: usuario.segmento,
         mcdu: usuario.mcdu,
         fila: usuario.fila,
-        hr_login: usuario.hr_login ? usuario.hr_login.split(':')[0] : null, // Pegando apenas HH
-        hr_logoff: usuario.hr_logoff ? usuario.hr_logoff.split(':')[0] : null, // Pegando apenas HH
+        hr_login: usuario.hr_login ? usuario.hr_login.split(':')[0] : null,
+        hr_logoff: usuario.hr_logoff ? usuario.hr_logoff.split(':')[0] : null,
       }));
     } catch (e) {
       console.error('Erro ao obter usuários logados:', e);
@@ -37,132 +36,104 @@ export class DashboardService {
       const result = await pool.query(`SELECT a.id_suporte, b.segmento, b.mcdu, b.fila, a.hora_solicitacao_suporte, a.tempo_aguardando_suporte, a.cancelar_suporte FROM suporte.tb_chamado_suporte a join trafego.tb_anexo1g b on a.mcdu::int = b.mcdu WHERE a.dt_solicitacao_suporte = CURRENT_DATE group by a.id_suporte, b.segmento, b.mcdu, b.fila, a.hora_solicitacao_suporte, a.tempo_aguardando_suporte, a.cancelar_suporte ;`);
       return result.rows.map((chamado: any) => ({
         ...chamado,
-        hora_solicitacao_suporte: chamado.hora_solicitacao_suporte.split(':')[0], // Apenas HH
+        hora_solicitacao_suporte: chamado.hora_solicitacao_suporte.split(':')[0],
       }));
     } catch (e) {
       console.error('Erro ao obter dados gerais de suporte:', e);
       throw e;
     }
   }
+
   private static obterHoraAtual(): string {
-    const timeZone = 'America/Sao_Paulo';
-    const agora = new Date();
-    const horaAtual = utcToZonedTime(agora, timeZone); // Converte para o fuso horário do Brasil
-    return format(horaAtual, 'HH', { timeZone }); // Retorna apenas a hora no formato 24h
+    return format(new Date(), 'HH');
   }
 
   private static gerarIntervalosHora(inicio: string = '08', fim: string = '21'): string[] {
     const intervalos: string[] = [];
-    const timeZone = 'America/Sao_Paulo';
-
-    // Cria uma data base no fuso horário do Brasil
-    let horaInicio = zonedTimeToUtc(`1970-01-01T${inicio}:00:00`, timeZone);
-    const horaFim = zonedTimeToUtc(`1970-01-01T${fim}:00:00`, timeZone);
+    let horaInicio = parseInt(inicio, 10);
+    const horaFim = parseInt(fim, 10);
 
     while (horaInicio <= horaFim) {
-      const horaFormatada = format(horaInicio, 'HH', { timeZone }); // Formata a hora no fuso horário do Brasil
-      intervalos.push(horaFormatada);
-      horaInicio.setHours(horaInicio.getHours() + 1); // Avança uma hora
+      intervalos.push(horaInicio.toString().padStart(2, '0'));
+      horaInicio++;
     }
 
     return intervalos;
   }
+
   private static async tratamentoDadosDash(usuariosLogadosDash: any, dadosGeraisSuporteDash: any): Promise<any> {
     try {
-        const faixasHorarias = this.gerarIntervalosHora();
-        const horaAtual = this.obterHoraAtual();
-        const faixasFiltradas = faixasHorarias.filter(faixa => faixa <= horaAtual);
+      const faixasHorarias = this.gerarIntervalosHora();
+      const horaAtual = this.obterHoraAtual();
+      const faixasFiltradas = faixasHorarias.filter(faixa => faixa <= horaAtual);
 
-        const resultado: any[] = faixasFiltradas.map(faixa => ({
-            horario: faixa,
-            segmentos: {}
-        }));
+      const resultado: any[] = faixasFiltradas.map(faixa => ({
+        horario: faixa,
+        segmentos: {}
+      }));
 
-        // Processamento dos dados gerais de suporte
-        dadosGeraisSuporteDash.forEach((chamado: any) => {
-            const horaSolicitacao = chamado.hora_solicitacao_suporte;
-            const segmento = chamado.segmento;
-            const fila = chamado.fila;
+      dadosGeraisSuporteDash.forEach((chamado: any) => {
+        const horaSolicitacao = chamado.hora_solicitacao_suporte;
+        const segmento = chamado.segmento;
+        const fila = chamado.fila;
 
-            resultado.forEach(faixa => {
-                if (faixa.horario === horaSolicitacao) {
-                    // Inicializa segmento se não existir
-                    if (!faixa.segmentos[segmento]) {
-                        faixa.segmentos[segmento] = { filas: {} };
-                    }
+        resultado.forEach(faixa => {
+          if (faixa.horario === horaSolicitacao) {
+            if (!faixa.segmentos[segmento]) {
+              faixa.segmentos[segmento] = { filas: {} };
+            }
 
-                    // Inicializa fila se não existir
-                    if (!faixa.segmentos[segmento].filas[fila]) {
-                        faixa.segmentos[segmento].filas[fila] = {
-                            acionamentos: 0,
-                            tempoTotalEspera: 0, // Tempo total de espera em minutos
-                            chamadosCancelados: 0
-                        };
-                    }
+            if (!faixa.segmentos[segmento].filas[fila]) {
+              faixa.segmentos[segmento].filas[fila] = {
+                acionamentos: 0,
+                tempoTotalEspera: 0,
+                chamadosCancelados: 0
+              };
+            }
 
-                    // Atualiza valores
-                    faixa.segmentos[segmento].filas[fila].acionamentos += 1;
+            faixa.segmentos[segmento].filas[fila].acionamentos += 1;
 
-                    if (chamado.tempo_aguardando_suporte && !chamado.cancelar_suporte) {
-                        // Converte o tempo de espera para minutos e soma ao total
-                        const tempoEsperaMinutos = this.horaParaMinutos(chamado.tempo_aguardando_suporte);
-                        faixa.segmentos[segmento].filas[fila].tempoTotalEspera += tempoEsperaMinutos;
-                    }
+            if (chamado.tempo_aguardando_suporte && !chamado.cancelar_suporte) {
+              const tempoEsperaMinutos = this.horaParaMinutos(chamado.tempo_aguardando_suporte);
+              faixa.segmentos[segmento].filas[fila].tempoTotalEspera += tempoEsperaMinutos;
+            }
 
-                    if (chamado.cancelar_suporte) {
-                        faixa.segmentos[segmento].filas[fila].chamadosCancelados += 1;
-                    }
-                }
-            });
+            if (chamado.cancelar_suporte) {
+              faixa.segmentos[segmento].filas[fila].chamadosCancelados += 1;
+            }
+          }
         });
+      });
 
-        // Processamento dos usuários logados
-        const logadosPorHora: { horario: string, usuarios: { id_usuario: string, segmento: string, mcdu: string, fila: string, logoff: boolean }[] }[] = [];
+      const logadosPorHora: any[] = faixasFiltradas.map(faixa => ({
+        horario: faixa,
+        usuarios: usuariosLogadosDash.filter((usuario: any) => {
+          const hrLoginMinutos = this.horaParaMinutos(usuario.hr_login);
+          const hrLogoffMinutos = usuario.hr_logoff ? this.horaParaMinutos(usuario.hr_logoff) : Infinity;
+          const faixaInicioMinutos = this.horaParaMinutos(faixa);
+          const faixaFimMinutos = faixaInicioMinutos + 60;
+          return hrLoginMinutos <= faixaInicioMinutos && (hrLogoffMinutos >= faixaFimMinutos || usuario.hr_logoff === null);
+        }).map((usuario: any) => ({
+          id_usuario: usuario.id,
+          segmento: usuario.segmento,
+          mcdu: usuario.mcdu,
+          fila: usuario.fila,
+          logoff: usuario.hr_logoff !== null
+        }))
+      }));
 
-        faixasFiltradas.forEach(faixa => {
-            const usuariosNaHora: { id_usuario: string, segmento: string, mcdu: string, fila: string, logoff: boolean }[] = [];
-
-            usuariosLogadosDash.forEach((usuario: any) => {
-                const hrLoginMinutos = this.horaParaMinutos(usuario.hr_login);
-                const hrLogoffMinutos = usuario.hr_logoff ? this.horaParaMinutos(usuario.hr_logoff) : Infinity;
-
-                const faixaInicioMinutos = this.horaParaMinutos(faixa);
-                const faixaFimMinutos = faixaInicioMinutos + 60;
-
-                if (hrLoginMinutos <= faixaInicioMinutos && (hrLogoffMinutos >= faixaFimMinutos || usuario.hr_logoff === null)) {
-                    usuariosNaHora.push({
-                        id_usuario: usuario.id,
-                        segmento: usuario.segmento,
-                        mcdu: usuario.mcdu,
-                        fila: usuario.fila,
-                        logoff: usuario.hr_logoff !== null // Marca se o usuário deslogou ou não
-                    });
-                }
-            });
-
-            logadosPorHora.push({
-                horario: faixa,
-                usuarios: usuariosNaHora
-            });
-        });
-
-        // Estrutura de retorno incluindo logados e resultado
-        return { 
-            logados: logadosPorHora, 
-            resultado 
-        };
+      return { logados: logadosPorHora, resultado };
     } catch (e) {
-        console.error('Erro no tratamento de dados do Dash:', e);
-        throw e;
+      console.error('Erro no tratamento de dados do Dash:', e);
+      throw e;
     }
-  } 
+  }
 
   public static async obterDashboard(): Promise<any> {
     try {
       const usuariosLogados = await this.usuariosLogadosDash();
       const dadosGerais = await this.dadosGeraisSuporteDash();
       const resultado = await this.tratamentoDadosDash(usuariosLogados, dadosGerais);
-
       return resultado;
     } catch (e) {
       console.error('Erro ao obter dados do dashboard:', e);
