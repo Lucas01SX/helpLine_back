@@ -7,10 +7,11 @@ import filasRoutes from './routes/FilasRoutes';
 import testeRoutes from './routes/TesteRoutes';
 import pool from './database/db';
 import { socketMiddleware } from './middlewares/socketMiddleware';
-import { updateCache } from './services/cacheService';
+import { cacheRelatorio, updateCache } from './services/cacheService';
 import { data } from 'cheerio/dist/commonjs/api/attributes';
 
 const updateInterval = 60 * 60 * 1000;
+const updateIntervalRel =  10 * 60 * 1000;
 const port = 3000;
 const app = express();
 const servidor = http.createServer(app);
@@ -30,6 +31,17 @@ const startServer = async () => {
             console.error('Erro ao atualizar o cache:', err);
         }
     }, updateInterval);
+
+    ///atualizaçãso do relatorio
+    setInterval(async () => {
+        try{
+            await cacheRelatorio();
+            console.log('Relatorio atualizd');
+        }catch (e){
+            console.error("Erro ao atualizar relatorio ", e);
+        }
+    },updateIntervalRel)
+
     servidor.listen(port, '0.0.0.0', () => {
         console.log(`Servidor rodando na porta ${port}`);
     });
@@ -153,6 +165,20 @@ io.on('connection', (socket) => {
         return;
         });
     });
+
+    socket.on('relatorio_suporte', (data,callback) => {
+        socketMiddleware('relatorio')(data, (result) => {
+            callback(result);
+        });
+    })
+
+    socket.on('consulta_dados', (callback) => {
+        socketMiddleware('relatorioCP')('', (result) => {
+            callback(result)
+            return;
+        });
+    })
+
 
     socket.on('disconnect', () => {
         //
