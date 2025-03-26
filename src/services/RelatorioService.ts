@@ -174,31 +174,30 @@ export class RelatorioService{
     }
 
     public static async relatorioCP(): Promise<any> {
-        try {
-            const cp: CachedData[] = await getCachedData();
-            if (cp) {
-                const codGestao = [1110,765,572];
-                const codTeste = [677];
-                const codSuporte = [791, 14943, 524, 14938, 572, 574, 1110, 61, 836, 1113, 232, 14937, 944];
-            
-                const cpAtualizado = cp.map(item => {
-                    if (item.cod !== undefined && item.cod !== null) {
-                        const codInt = parseInt(item.cod.replace(/^0+/, ''), 10);
-                        
-                        
-                        return {
-                            nomeSuporte: codSuporte.includes(codInt) ? item.nome : null,
-                            nomeGestao: codGestao.includes(codInt) ? item.nome : null
-                        };
-                    }
-                });
-                //console.log(cpAtualizado);
-                return cpAtualizado;
-            }
-        } catch (e) {
-            console.error('Erro ao buscar informações do CP no Cache:', e);
+    try {
+        const cp: CachedData[] = await getCachedData();
+        if (cp) {
+            const codGestao = [1110, 765, 572];
+            const codSuporte = [791, 14943, 524, 14938, 572, 574, 1110, 61, 836, 1113, 232, 14937, 944];
+
+            const filteredData = cp.filter(item => 
+                (codGestao.includes(parseInt(item.cod)) || codSuporte.includes(parseInt(item.cod))) &&
+                item.nome && item.nome !== ''
+            );
+
+            return filteredData.map(item => ({
+                nomeGestor: item.nome_super,
+                nomeSuporte: item.nome
+            }));
         }
+        return [];
+    } catch (error) {
+        console.error('Erro ao trazer gestao e suporte', error);
+        throw error;
     }
+
+    }
+
     public static async relatorioSuporte(suporte: string, gestor: string, coordenador: string, fila: string, segmento: string, dataInicio: string, dataFim: string, agruparPor: string): Promise<any> {
         const relatorio = await this.consultaRelatorioSuporte(suporte, gestor, coordenador, fila, segmento, dataInicio, dataFim, agruparPor);
         return relatorio;
