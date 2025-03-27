@@ -11,7 +11,7 @@ import { cacheRelatorio, updateCache } from './services/cacheService';
 import { data } from 'cheerio/dist/commonjs/api/attributes';
 
 const updateInterval = 60 * 60 * 1000;
-const updateIntervalRel =  10 * 60 * 1000;
+const updateIntervalRel =  30 * 60 * 1000;
 const port = 3000;
 const app = express();
 const servidor = http.createServer(app);
