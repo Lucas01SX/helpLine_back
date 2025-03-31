@@ -33,7 +33,9 @@ export class RelatorioService{
                 entrada2 = null;
                 break;
             default:
-                throw new Error('Agrupamento inválido');
+                entrada1 ='data';
+                entrada2=null;
+                //throw new Error('Agrupamento inválido');
         }
 
         //console.log(`Agrupar por: ${agruparPor}`);
@@ -61,11 +63,14 @@ export class RelatorioService{
                 return dataRegistro >= dataInicioISO && dataRegistro <= dataFimISO;
             });
 
+            
+
             const filtroGestor = gestor ? filtroDatas.filter(dado => dado.gestor === gestor) : filtroDatas;
             const filtroSuporte = suporte ? filtroGestor.filter(dado => dado.suporte === suporte) : filtroGestor;
             const filtroSegmento = segmento ? filtroSuporte.filter(dado => dado.segmento === segmento) : filtroSuporte;
             const filtroFilas = fila ? filtroSegmento.filter(dado => dado.fila === fila) : filtroSegmento;
-
+            
+            
             interface Agrupamento {
                 quant: number;
                 somaNotas: number;
@@ -110,6 +115,7 @@ export class RelatorioService{
 
                 if (item.hora_inicio_suporte == null) {
                     agrupamento[chave].somaAbandonadas += 1;
+
                 }
 
                 if (item.hora_inicio_suporte !== null) {
@@ -143,7 +149,8 @@ export class RelatorioService{
                 }
             });
 
-            
+            console.log(filtroFilas)
+
 
             const find = Object.values(agrupamento).map(item => {
                 const nota = item.totalNotas > 0 ? (item.somaNotas / item.totalNotas).toFixed(2) : 'N/A';

@@ -23,6 +23,7 @@ const db_1 = __importDefault(require("./database/db"));
 const socketMiddleware_1 = require("./middlewares/socketMiddleware");
 const cacheService_1 = require("./services/cacheService");
 const updateInterval = 60 * 60 * 1000;
+const updateIntervalRel = 30 * 60 * 1000;
 const port = 3000;
 const app = (0, express_1.default)();
 exports.app = app;
@@ -44,6 +45,16 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
             console.error('Erro ao atualizar o cache:', err);
         }
     }), updateInterval);
+    ///atualizaçãso do relatorio
+    setInterval(() => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            yield (0, cacheService_1.cacheRelatorio)();
+            console.log('Relatorio atualizd');
+        }
+        catch (e) {
+            console.error("Erro ao atualizar relatorio ", e);
+        }
+    }), updateIntervalRel);
     servidor.listen(port, '0.0.0.0', () => {
         console.log(`Servidor rodando na porta ${port}`);
     });
@@ -157,6 +168,17 @@ io.on('connection', (socket) => {
     });
     socket.on('avaliacao_suporte', (data, callback) => {
         (0, socketMiddleware_1.socketMiddleware)('cadastrarAvaliacao')(data, (result) => {
+            return;
+        });
+    });
+    socket.on('relatorio_suporte', (data, callback) => {
+        (0, socketMiddleware_1.socketMiddleware)('relatorio')(data, (result) => {
+            callback(result);
+        });
+    });
+    socket.on('consulta_dados', (callback) => {
+        (0, socketMiddleware_1.socketMiddleware)('relatorioCP')('', (result) => {
+            callback(result);
             return;
         });
     });
