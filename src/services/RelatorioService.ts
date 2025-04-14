@@ -28,6 +28,10 @@ export class RelatorioService{
                 entrada1 = 'data';
                 entrada2 = null;
                 break;
+            case 'geral':
+                entrada1 = 'data';
+                entrada2 = null;
+                break;
             case 'ns_suporte':
                 entrada1 = 'data';
                 entrada2 = null;
@@ -70,7 +74,10 @@ export class RelatorioService{
             const filtroSegmento = segmento ? filtroSuporte.filter(dado => dado.segmento === segmento) : filtroSuporte;
             const filtroFilas = fila ? filtroSegmento.filter(dado => dado.fila === fila) : filtroSegmento;
             
-            
+            if (agruparPor === 'geral') {
+                return filtroFilas;
+            }
+    
             interface Agrupamento {
                 quant: number;
                 somaNotas: number;
