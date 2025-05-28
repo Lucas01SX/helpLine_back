@@ -78,7 +78,7 @@ app.use(body_parser_1.default.json());
 let poolEnded = false;
 app.use('/api/filas', FilasRoutes_1.default);
 // ROTA PARA TESTES
-// app.use('/api/dash', testeRoutes);
+// app.use('/api/teste', testeRoutes);
 app.get('/', (req, res) => {
     res.send(`Bem vindo à API`);
 });
@@ -180,6 +180,21 @@ io.on('connection', (socket) => {
         (0, socketMiddleware_1.socketMiddleware)('relatorioCP')('', (result) => {
             callback(result);
             return;
+        });
+    });
+    socket.on('consulta_cargos', (callback) => {
+        (0, socketMiddleware_1.socketMiddleware)('cargos')('', (result) => {
+            callback(result);
+        });
+    });
+    socket.on('consulta_perfis', (callback) => {
+        (0, socketMiddleware_1.socketMiddleware)('perfis')('', (result) => {
+            callback(result);
+        });
+    });
+    socket.on('atualizar_perfil', (data, callback) => {
+        (0, socketMiddleware_1.socketMiddleware)('atualizarPerfil')(data, (result) => {
+            callback(result);
         });
     });
     socket.on('disconnect', () => {

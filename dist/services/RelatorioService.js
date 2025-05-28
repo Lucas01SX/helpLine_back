@@ -37,6 +37,10 @@ class RelatorioService {
                     entrada1 = 'data';
                     entrada2 = null;
                     break;
+                case 'geral':
+                    entrada1 = 'data';
+                    entrada2 = null;
+                    break;
                 case 'ns_suporte':
                     entrada1 = 'data';
                     entrada2 = null;
@@ -70,6 +74,9 @@ class RelatorioService {
                 const filtroSuporte = suporte ? filtroGestor.filter(dado => dado.suporte === suporte) : filtroGestor;
                 const filtroSegmento = segmento ? filtroSuporte.filter(dado => dado.segmento === segmento) : filtroSuporte;
                 const filtroFilas = fila ? filtroSegmento.filter(dado => dado.fila === fila) : filtroSegmento;
+                if (agruparPor === 'geral') {
+                    return filtroFilas;
+                }
                 const agrupamento = {};
                 filtroFilas.forEach(item => {
                     const chave = entrada2 ? `${item[entrada1]}-${item[entrada2]}` : item[entrada1];

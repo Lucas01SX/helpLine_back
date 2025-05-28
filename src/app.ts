@@ -69,7 +69,7 @@ let poolEnded = false;
 
 app.use('/api/filas', filasRoutes);
 // ROTA PARA TESTES
-// app.use('/api/dash', testeRoutes);
+// app.use('/api/teste', testeRoutes);
 
 app.get('/', (req: Request, res: Response) => {
     res.send(`Bem vindo à API`);
@@ -179,6 +179,22 @@ io.on('connection', (socket) => {
         });
     })
 
+    socket.on('consulta_cargos', (callback) => {
+        socketMiddleware('cargos')('',(result) => {
+            callback(result);
+        });
+    });
+
+    socket.on('consulta_perfis', (callback) => {
+        socketMiddleware('perfis')('',(result) => {
+            callback(result);
+        });
+    });
+    socket.on('atualizar_perfil', (data, callback) => {
+        socketMiddleware('atualizarPerfil')(data, (result) => {
+            callback(result);
+        });
+    });
 
     socket.on('disconnect', () => {
         //

@@ -14,11 +14,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DashboardService = void 0;
 const db_1 = __importDefault(require("../database/db"));
-const date_fns_tz_1 = require("date-fns-tz");
+const date_fns_1 = require("date-fns");
 class DashboardService {
     static horaParaMinutos(hora) {
         const [h, m] = hora.split(':').map(Number);
-        return h * 60 + (m || 0); // Garante que os minutos sejam tratados como decimais
+        return h * 60 + (m || 0);
     }
     static usuariosLogadosDash() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -30,7 +30,7 @@ class DashboardService {
                     mcdu: usuario.mcdu,
                     fila: usuario.fila,
                     hr_login: usuario.hr_login ? usuario.hr_login.split(':')[0] : null,
-                    hr_logoff: usuario.hr_logoff ? usuario.hr_logoff.split(':')[0] : null, // Pegando apenas HH
+                    hr_logoff: usuario.hr_logoff ? usuario.hr_logoff.split(':')[0] : null,
                 }));
             }
             catch (e) {
@@ -52,21 +52,15 @@ class DashboardService {
         });
     }
     static obterHoraAtual() {
-        const timeZone = 'America/Sao_Paulo';
-        const agora = new Date();
-        const horaAtual = (0, date_fns_tz_1.utcToZonedTime)(agora, timeZone); // Converte para o fuso horário do Brasil
-        return (0, date_fns_tz_1.format)(horaAtual, 'HH', { timeZone }); // Retorna apenas a hora no formato 24h
+        return (0, date_fns_1.format)(new Date(), 'HH');
     }
     static gerarIntervalosHora(inicio = '08', fim = '21') {
         const intervalos = [];
-        const timeZone = 'America/Sao_Paulo';
-        // Cria uma data base no fuso horário do Brasil
-        let horaInicio = (0, date_fns_tz_1.zonedTimeToUtc)(`1970-01-01T${inicio}:00:00`, timeZone);
-        const horaFim = (0, date_fns_tz_1.zonedTimeToUtc)(`1970-01-01T${fim}:00:00`, timeZone);
+        let horaInicio = parseInt(inicio, 10);
+        const horaFim = parseInt(fim, 10);
         while (horaInicio <= horaFim) {
-            const horaFormatada = (0, date_fns_tz_1.format)(horaInicio, 'HH', { timeZone }); // Formata a hora no fuso horário do Brasil
-            intervalos.push(horaFormatada);
-            horaInicio.setHours(horaInicio.getHours() + 1); // Avança uma hora
+            intervalos.push(horaInicio.toString().padStart(2, '0'));
+            horaInicio++;
         }
         return intervalos;
     }
@@ -80,18 +74,15 @@ class DashboardService {
                     horario: faixa,
                     segmentos: {}
                 }));
-                // Processamento dos dados gerais de suporte
                 dadosGeraisSuporteDash.forEach((chamado) => {
                     const horaSolicitacao = chamado.hora_solicitacao_suporte;
                     const segmento = chamado.segmento;
                     const fila = chamado.fila;
                     resultado.forEach(faixa => {
                         if (faixa.horario === horaSolicitacao) {
-                            // Inicializa segmento se não existir
                             if (!faixa.segmentos[segmento]) {
                                 faixa.segmentos[segmento] = { filas: {} };
                             }
-                            // Inicializa fila se não existir
                             if (!faixa.segmentos[segmento].filas[fila]) {
                                 faixa.segmentos[segmento].filas[fila] = {
                                     acionamentos: 0,
@@ -99,10 +90,8 @@ class DashboardService {
                                     chamadosCancelados: 0
                                 };
                             }
-                            // Atualiza valores
                             faixa.segmentos[segmento].filas[fila].acionamentos += 1;
                             if (chamado.tempo_aguardando_suporte && !chamado.cancelar_suporte) {
-                                // Converte o tempo de espera para minutos e soma ao total
                                 const tempoEsperaMinutos = this.horaParaMinutos(chamado.tempo_aguardando_suporte);
                                 faixa.segmentos[segmento].filas[fila].tempoTotalEspera += tempoEsperaMinutos;
                             }
@@ -112,35 +101,23 @@ class DashboardService {
                         }
                     });
                 });
-                // Processamento dos usuários logados
-                const logadosPorHora = [];
-                faixasFiltradas.forEach(faixa => {
-                    const usuariosNaHora = [];
-                    usuariosLogadosDash.forEach((usuario) => {
+                const logadosPorHora = faixasFiltradas.map(faixa => ({
+                    horario: faixa,
+                    usuarios: usuariosLogadosDash.filter((usuario) => {
                         const hrLoginMinutos = this.horaParaMinutos(usuario.hr_login);
                         const hrLogoffMinutos = usuario.hr_logoff ? this.horaParaMinutos(usuario.hr_logoff) : Infinity;
                         const faixaInicioMinutos = this.horaParaMinutos(faixa);
                         const faixaFimMinutos = faixaInicioMinutos + 60;
-                        if (hrLoginMinutos <= faixaInicioMinutos && (hrLogoffMinutos >= faixaFimMinutos || usuario.hr_logoff === null)) {
-                            usuariosNaHora.push({
-                                id_usuario: usuario.id,
-                                segmento: usuario.segmento,
-                                mcdu: usuario.mcdu,
-                                fila: usuario.fila,
-                                logoff: usuario.hr_logoff !== null // Marca se o usuário deslogou ou não
-                            });
-                        }
-                    });
-                    logadosPorHora.push({
-                        horario: faixa,
-                        usuarios: usuariosNaHora
-                    });
-                });
-                // Estrutura de retorno incluindo logados e resultado
-                return {
-                    logados: logadosPorHora,
-                    resultado
-                };
+                        return hrLoginMinutos <= faixaInicioMinutos && (hrLogoffMinutos >= faixaFimMinutos || usuario.hr_logoff === null);
+                    }).map((usuario) => ({
+                        id_usuario: usuario.id,
+                        segmento: usuario.segmento,
+                        mcdu: usuario.mcdu,
+                        fila: usuario.fila,
+                        logoff: usuario.hr_logoff !== null
+                    }))
+                }));
+                return { logados: logadosPorHora, resultado };
             }
             catch (e) {
                 console.error('Erro no tratamento de dados do Dash:', e);
