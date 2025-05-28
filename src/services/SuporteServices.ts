@@ -58,12 +58,38 @@ export class SuporteServices {
         try {
             const mcdu = parseInt(fila);
             const login = await this.consultaMatricula(matricula);
-            const dados = await RequestsSuport.main(login.login);
-            if (!dados) {
-                throw new Error('Erro em localizar os dados na request 2cx');
+            
+            // Obter todas as filas de WhatsApp
+            const filasWhatsapp = await FilasService.filasGerais();
+            const whatsappMcduList = filasWhatsapp
+                .filter((f: any) => f.segmento === 'WHATSAPP')
+                .map((f: any) => parseInt(f.mcdu));
+            
+            // Verificar se o mcdu atual é uma fila de WhatsApp
+            const isWhatsapp = whatsappMcduList.includes(mcdu);
+            
+            let telefone = '';
+            let uniqueId = '';
+            
+            if (!isWhatsapp) {
+                // Fluxo normal com request
+                const dados = await RequestsSuport.main(login.login);
+                if (!dados) {
+                    throw new Error('Erro em localizar os dados na request 2cx');
+                }
+                telefone = dados.telefone;
+                uniqueId = dados.uniqueId;
+            } else {
+                // Fluxo WhatsApp - valores padrão
+                telefone = 'WHATSAPP';
+                uniqueId = 'WHATSAPP_' + Date.now().toString();
             }
-            await this.cadastrarSuporte(login.id_usuario,date, hora, mcdu, dados.telefone, dados.uniqueId);
-            const id_suporte = await this.obterIdSuporte(login.id_usuario,date, hora, mcdu, dados.telefone, dados.uniqueId);
+            
+            await this.cadastrarSuporte(login.id_usuario, date, hora, mcdu, telefone, uniqueId);
+            const id_suporte = await this.obterIdSuporte(
+                login.id_usuario, date, hora, mcdu, telefone, uniqueId
+            );
+            
             return id_suporte;
         } catch (e) {
             console.error('Erro na autenticação:', e);
