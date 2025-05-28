@@ -7,7 +7,7 @@ export class GestaoAcessoService {
             const cargos = res.rows;
             return cargos;
         } catch (e) {
-            console.error('Erro na autenticação:', e);
+            console.error('Erro na busca de cargosGerais:', e);
             throw e;
         }
     }
@@ -17,7 +17,7 @@ export class GestaoAcessoService {
             const perfis = res.rows;
             return perfis;
         } catch (e) {
-            console.error('Erro na autenticação:', e);
+            console.error('Erro na busca de perfisAcesso:', e);
             throw e;
         }
     }
@@ -43,7 +43,7 @@ export class GestaoAcessoService {
             await client.query('COMMIT');
         } catch (e) {
             await client.query('ROLLBACK');
-            console.error('Erro na vinculação do logoff:', e);
+            console.error('Erro na vinculação do registerLog:', e);
             throw e;
         }finally {
             client.release();
@@ -59,7 +59,7 @@ export class GestaoAcessoService {
             const user = res.rows[0];
             return user;
         } catch (e) {
-            console.error('Erro na autenticação:', e);
+            console.error('Erro na getIdUsuario:', e);
             throw e;
         }
     }
@@ -70,7 +70,7 @@ export class GestaoAcessoService {
             await this.updateProfile(id_usuario, id_perfil);
             await this.registerLog(id_usuario, pk_id_usuario_responsavel, nome_perfil)
         } catch (e) {
-            console.error('Erro na autenticação:', e);
+            console.error('Erro na atualizarPerfil:', e);
             throw e;
         }
     }
@@ -114,7 +114,8 @@ export class GestaoAcessoService {
                 UPDATE suporte.tb_skills_staff 
                 SET excluida = $1, 
                     matricula_alteracao = $2,
-                    data_alteracao = current_timestamp
+                    data_alteracao = current_timestamp,
+                    observacao = 'Alteração realizada pelo HelpppLine'
                 WHERE matricula = $3 
                 AND fila = $4 
                 AND mcdu = $5
@@ -150,11 +151,8 @@ export class GestaoAcessoService {
     }
     private static async validarFilas(matricula: number, login: string, filas: string, mcdu: string, segmentos: string, situacao: string, mat_responsavel: string): Promise<any> {
     try {   
-        // Verifica se filas e mcdu estão vazios ou contêm apenas espaços/vírgulas
         const filasVazias = !filas || filas.trim() === '' || filas.trim() === ',';
         const mcduVazios = !mcdu || mcdu.trim() === '' || mcdu.trim() === ',';
-        
-        // Se ambos estiverem vazios, apenas remove as filas existentes (para situação de ajuste)
         if (filasVazias && mcduVazios) {
             if (situacao === 'ajuste') {
                 const filasAtuais = await this.obterFilasAtuais(matricula);
@@ -162,48 +160,39 @@ export class GestaoAcessoService {
                     await this.atualizarStatusFila(matricula, item.fila, item.mcdu, true, mat_responsavel);
                 }));
             }
-            return; // Não faz nada para cadastro ou se não houver filas para remover
+            return; 
         }
-
-        // Processamento normal quando há filas e mcdu válidos
         const filaComMcdu = filas.split(',')
             .map((fila, index) => ({
                 fila: fila.trim(),
-                mcdu: mcdu.split(',')[index]?.trim() || '' // Proteção contra undefined
+                mcdu: mcdu.split(',')[index]?.trim() || '' 
             }))
-            .filter(item => item.fila && item.mcdu); // Filtra apenas itens válidos
+            .filter(item => item.fila && item.mcdu); 
 
         if (filaComMcdu.length === 0) {
-            return; // Não processa se não houver itens válidos
+            return; 
         }
+        const filasAtuais = await this.obterFilasAtuais(matricula);
 
-        if (situacao === 'cadastro') {
-            await Promise.all(filaComMcdu.map(async (item) => {
+        await Promise.all(filaComMcdu.map(async (item) => {
+            const {exists, excluida} = await this.verificarFilaExistente(matricula, item.fila, item.mcdu);
+            
+            if (!exists) {
                 await this.cadastrarFilas(matricula, login, item.fila, item.mcdu, mat_responsavel);
-            }));
-        } else if (situacao === 'ajuste') {
-            const filasAtuais = await this.obterFilasAtuais(matricula);
+            } else if (excluida) {
+                await this.atualizarStatusFila(matricula, item.fila, item.mcdu, false, mat_responsavel);
+            }
+        }));
 
-            await Promise.all(filaComMcdu.map(async (item) => {
-                const {exists, excluida} = await this.verificarFilaExistente(matricula, item.fila, item.mcdu);
-                
-                if (!exists) {
-                    await this.cadastrarFilas(matricula, login, item.fila, item.mcdu, mat_responsavel);
-                } else if (excluida) {
-                    await this.atualizarStatusFila(matricula, item.fila, item.mcdu, false, mat_responsavel);
-                }
-            }));
+        const filasParaRemover = filasAtuais.filter(filaAtual => 
+            !filaComMcdu.some(item => 
+                item.fila === filaAtual.fila && item.mcdu === filaAtual.mcdu
+            )
+        );
 
-            const filasParaRemover = filasAtuais.filter(filaAtual => 
-                !filaComMcdu.some(item => 
-                    item.fila === filaAtual.fila && item.mcdu === filaAtual.mcdu
-                )
-            );
-
-            await Promise.all(filasParaRemover.map(async (item) => {
-                await this.atualizarStatusFila(matricula, item.fila, item.mcdu, true, mat_responsavel);
-            }));
-        }
+        await Promise.all(filasParaRemover.map(async (item) => {
+            await this.atualizarStatusFila(matricula, item.fila, item.mcdu, true, mat_responsavel);
+        }));
     } catch (e) {
         console.error('Erro no processamento das filas:', e);
         throw e;

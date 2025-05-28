@@ -23,7 +23,7 @@ class GestaoAcessoService {
                 return cargos;
             }
             catch (e) {
-                console.error('Erro na autenticação:', e);
+                console.error('Erro na busca de cargosGerais:', e);
                 throw e;
             }
         });
@@ -36,7 +36,7 @@ class GestaoAcessoService {
                 return perfis;
             }
             catch (e) {
-                console.error('Erro na autenticação:', e);
+                console.error('Erro na busca de perfisAcesso:', e);
                 throw e;
             }
         });
@@ -69,7 +69,7 @@ class GestaoAcessoService {
             }
             catch (e) {
                 yield client.query('ROLLBACK');
-                console.error('Erro na vinculação do logoff:', e);
+                console.error('Erro na vinculação do registerLog:', e);
                 throw e;
             }
             finally {
@@ -89,7 +89,7 @@ class GestaoAcessoService {
                 return user;
             }
             catch (e) {
-                console.error('Erro na autenticação:', e);
+                console.error('Erro na getIdUsuario:', e);
                 throw e;
             }
         });
@@ -102,7 +102,7 @@ class GestaoAcessoService {
                 yield this.registerLog(id_usuario, pk_id_usuario_responsavel, nome_perfil);
             }
             catch (e) {
-                console.error('Erro na autenticação:', e);
+                console.error('Erro na atualizarPerfil:', e);
                 throw e;
             }
         });
@@ -125,21 +125,117 @@ class GestaoAcessoService {
             }
         });
     }
+    static obterFilasAtuais(matricula) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const res = yield db_1.default.query(`
+                SELECT fila, mcdu 
+                FROM suporte.tb_skills_staff 
+                WHERE matricula = $1 
+                AND excluida = false
+            `, [matricula]);
+                return res.rows.map(row => ({
+                    fila: row.fila,
+                    mcdu: row.mcdu
+                }));
+            }
+            catch (e) {
+                console.error('Erro ao obter filas atuais:', e);
+                throw e;
+            }
+        });
+    }
+    static atualizarStatusFila(matricula, fila, mcdu, excluida, mat_responsavel) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const client = yield db_1.default.connect();
+            try {
+                yield client.query('BEGIN');
+                yield client.query(`
+                UPDATE suporte.tb_skills_staff 
+                SET excluida = $1, 
+                    matricula_alteracao = $2,
+                    data_alteracao = current_timestamp,
+                    observacao = 'Alteração realizada pelo HelpppLine'
+                WHERE matricula = $3 
+                AND fila = $4 
+                AND mcdu = $5
+            `, [excluida, mat_responsavel, matricula, fila, mcdu]);
+                yield client.query('COMMIT');
+            }
+            catch (e) {
+                yield client.query('ROLLBACK');
+                console.error('Erro na atualização da fila:', e);
+                throw e;
+            }
+            finally {
+                client.release();
+            }
+        });
+    }
+    static verificarFilaExistente(matricula, fila, mcdu) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const res = yield db_1.default.query(`
+                SELECT excluida 
+                FROM suporte.tb_skills_staff 
+                WHERE matricula = $1 
+                AND fila = $2 
+                AND mcdu = $3
+            `, [matricula, fila, mcdu]);
+                if (res.rows.length === 0) {
+                    return { exists: false, excluida: false };
+                }
+                return { exists: true, excluida: res.rows[0].excluida };
+            }
+            catch (e) {
+                console.error('Erro na verificação da fila:', e);
+                throw e;
+            }
+        });
+    }
     static validarFilas(matricula, login, filas, mcdu, segmentos, situacao, mat_responsavel) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const filaComMcdu = filas.split(',').map((fila, index) => ({
-                    fila: fila.trim(),
-                    mcdu: mcdu.split(',')[index].trim()
-                }));
+                const filasVazias = !filas || filas.trim() === '' || filas.trim() === ',';
+                const mcduVazios = !mcdu || mcdu.trim() === '' || mcdu.trim() === ',';
+                if (filasVazias && mcduVazios) {
+                    if (situacao === 'ajuste') {
+                        const filasAtuais = yield this.obterFilasAtuais(matricula);
+                        yield Promise.all(filasAtuais.map((item) => __awaiter(this, void 0, void 0, function* () {
+                            yield this.atualizarStatusFila(matricula, item.fila, item.mcdu, true, mat_responsavel);
+                        })));
+                    }
+                    return;
+                }
+                const filaComMcdu = filas.split(',')
+                    .map((fila, index) => {
+                    var _a;
+                    return ({
+                        fila: fila.trim(),
+                        mcdu: ((_a = mcdu.split(',')[index]) === null || _a === void 0 ? void 0 : _a.trim()) || ''
+                    });
+                })
+                    .filter(item => item.fila && item.mcdu);
+                if (filaComMcdu.length === 0) {
+                    return;
+                }
+                const filasAtuais = yield this.obterFilasAtuais(matricula);
                 yield Promise.all(filaComMcdu.map((item) => __awaiter(this, void 0, void 0, function* () {
-                    if (situacao === 'cadastro') {
+                    const { exists, excluida } = yield this.verificarFilaExistente(matricula, item.fila, item.mcdu);
+                    if (!exists) {
                         yield this.cadastrarFilas(matricula, login, item.fila, item.mcdu, mat_responsavel);
                     }
+                    else if (excluida) {
+                        yield this.atualizarStatusFila(matricula, item.fila, item.mcdu, false, mat_responsavel);
+                    }
+                })));
+                const filasParaRemover = filasAtuais.filter(filaAtual => !filaComMcdu.some(item => item.fila === filaAtual.fila && item.mcdu === filaAtual.mcdu));
+                yield Promise.all(filasParaRemover.map((item) => __awaiter(this, void 0, void 0, function* () {
+                    yield this.atualizarStatusFila(matricula, item.fila, item.mcdu, true, mat_responsavel);
                 })));
             }
             catch (e) {
-                console.error('Erro na autenticação:', e);
+                console.error('Erro no processamento das filas:', e);
                 throw e;
             }
         });
