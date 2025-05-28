@@ -3,8 +3,14 @@ import pool from '../database/db';
 import { RequestsSuport } from './RequestSuporte';
 import { getCachedData  } from './cacheService';
 import { CachedData } from '../models/Cache';
-import { FilasService } from "./FilasService";
+import { FilasService } from './FilasServices';
 
+
+interface FilaInfo {
+    segmento: string;
+    mcdu: string;
+    fila: string;
+}
 
 export class SuporteServices {
     public static async consultaMatricula(matricula:number): Promise<any> {
@@ -58,21 +64,14 @@ export class SuporteServices {
         try {
             const mcdu = parseInt(fila);
             const login = await this.consultaMatricula(matricula);
-            
-            // Obter todas as filas para verificar o segmento
             const todasFilas = await FilasService.filasGerais();
-            const filaInfo = todasFilas.find(f => f.mcdu === mcdu.toString());
-            
+            const filaInfo = todasFilas.find((f: FilaInfo) => f.mcdu === fila);
             let telefone: string;
             let uniqueId: string;
-
-            // Verificar se é WHATSAPP
-            if (filaInfo && filaInfo.segmento === 'WHATSAPP') {
-                // Valores padrão para WHATSAPP
-                telefone = '55999999999'; // Substitua pelo telefone padrão desejado
-                uniqueId = `WHATSAPP-${Date.now()}`; // ID único para WHATSAPP
+            if (filaInfo?.segmento === 'WHATSAPP') {
+                telefone = '55999999999';
+                uniqueId = `WHATSAPP-${Date.now()}`;
             } else {
-                // Proceder com a lógica normal para outras filas
                 const dados = await RequestsSuport.main(login.login);
                 if (!dados) {
                     throw new Error('Erro em localizar os dados na request 2cx');
@@ -80,7 +79,6 @@ export class SuporteServices {
                 telefone = dados.telefone;
                 uniqueId = dados.uniqueId;
             }
-
             await this.cadastrarSuporte(login.id_usuario, date, hora, mcdu, telefone, uniqueId);
             const id_suporte = await this.obterIdSuporte(login.id_usuario, date, hora, mcdu, telefone, uniqueId);
             return id_suporte;

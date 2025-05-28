@@ -16,6 +16,7 @@ exports.SuporteServices = void 0;
 const db_1 = __importDefault(require("../database/db"));
 const RequestSuporte_1 = require("./RequestSuporte");
 const cacheService_1 = require("./cacheService");
+const FilasServices_1 = require("./FilasServices");
 class SuporteServices {
     static consultaMatricula(matricula) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -79,12 +80,24 @@ class SuporteServices {
             try {
                 const mcdu = parseInt(fila);
                 const login = yield this.consultaMatricula(matricula);
-                const dados = yield RequestSuporte_1.RequestsSuport.main(login.login);
-                if (!dados) {
-                    throw new Error('Erro em localizar os dados na request 2cx');
+                const todasFilas = yield FilasServices_1.FilasService.filasGerais();
+                const filaInfo = todasFilas.find((f) => f.mcdu === fila);
+                let telefone;
+                let uniqueId;
+                if ((filaInfo === null || filaInfo === void 0 ? void 0 : filaInfo.segmento) === 'WHATSAPP') {
+                    telefone = '55999999999';
+                    uniqueId = `WHATSAPP-${Date.now()}`;
                 }
-                yield this.cadastrarSuporte(login.id_usuario, date, hora, mcdu, dados.telefone, dados.uniqueId);
-                const id_suporte = yield this.obterIdSuporte(login.id_usuario, date, hora, mcdu, dados.telefone, dados.uniqueId);
+                else {
+                    const dados = yield RequestSuporte_1.RequestsSuport.main(login.login);
+                    if (!dados) {
+                        throw new Error('Erro em localizar os dados na request 2cx');
+                    }
+                    telefone = dados.telefone;
+                    uniqueId = dados.uniqueId;
+                }
+                yield this.cadastrarSuporte(login.id_usuario, date, hora, mcdu, telefone, uniqueId);
+                const id_suporte = yield this.obterIdSuporte(login.id_usuario, date, hora, mcdu, telefone, uniqueId);
                 return id_suporte;
             }
             catch (e) {
