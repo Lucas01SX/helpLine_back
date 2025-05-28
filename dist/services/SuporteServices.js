@@ -78,15 +78,15 @@ class SuporteServices {
     static solicitar(matricula, fila, date, hora) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const mcdu = parseInt(fila);
                 const login = yield this.consultaMatricula(matricula);
                 const todasFilas = yield FilasServices_1.FilasService.filasGerais();
+                // Busca a fila usando o mcdu (string)
                 const filaInfo = todasFilas.find((f) => f.mcdu === fila);
                 let telefone;
                 let uniqueId;
                 if ((filaInfo === null || filaInfo === void 0 ? void 0 : filaInfo.segmento) === 'WHATSAPP') {
-                    telefone = '55999999999';
-                    uniqueId = `WHATSAPP-${Date.now()}`;
+                    telefone = '55999999999'; // Telefone padrão para WHATSAPP
+                    uniqueId = `WHATSAPP-${Date.now()}`; // ID único
                 }
                 else {
                     const dados = yield RequestSuporte_1.RequestsSuport.main(login.login);
@@ -96,8 +96,10 @@ class SuporteServices {
                     telefone = dados.telefone;
                     uniqueId = dados.uniqueId;
                 }
-                yield this.cadastrarSuporte(login.id_usuario, date, hora, mcdu, telefone, uniqueId);
-                const id_suporte = yield this.obterIdSuporte(login.id_usuario, date, hora, mcdu, telefone, uniqueId);
+                // Converte mcdu para número apenas no cadastro (se necessário)
+                const mcduNumero = parseInt(fila);
+                yield this.cadastrarSuporte(login.id_usuario, date, hora, mcduNumero, telefone, uniqueId);
+                const id_suporte = yield this.obterIdSuporte(login.id_usuario, date, hora, mcduNumero, telefone, uniqueId);
                 return id_suporte;
             }
             catch (e) {

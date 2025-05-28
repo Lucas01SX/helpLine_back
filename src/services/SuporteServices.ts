@@ -6,12 +6,6 @@ import { CachedData } from '../models/Cache';
 import { FilasService } from './FilasServices';
 
 
-interface FilaInfo {
-    segmento: string;
-    mcdu: string;
-    fila: string;
-}
-
 export class SuporteServices {
     public static async consultaMatricula(matricula:number): Promise<any> {
         try {
@@ -60,38 +54,21 @@ export class SuporteServices {
             throw e;
         }
     }
-    public static async solicitar(matricula: number, fila: string, date: string, hora: string): Promise<any> {
+    public static async solicitar(matricula:number, fila:string, date:string, hora:string): Promise<any> {
         try {
+            const mcdu = parseInt(fila);
             const login = await this.consultaMatricula(matricula);
-            const todasFilas = await FilasService.filasGerais();
-            
-            // Busca a fila usando o mcdu (string)
-            const filaInfo = todasFilas.find((f: FilaInfo) => f.mcdu === fila);
-            
-            let telefone: string;
-            let uniqueId: string;
-
-            if (filaInfo?.segmento === 'WHATSAPP') {
-                telefone = '55999999999'; // Telefone padrão para WHATSAPP
-                uniqueId = `WHATSAPP-${Date.now()}`; // ID único
-            } else {
-                const dados = await RequestsSuport.main(login.login);
-                if (!dados) {
-                    throw new Error('Erro em localizar os dados na request 2cx');
-                }
-                telefone = dados.telefone;
-                uniqueId = dados.uniqueId;
+            const dados = await RequestsSuport.main(login.login);
+            if (!dados) {
+                throw new Error('Erro em localizar os dados na request 2cx');
             }
-
-            // Converte mcdu para número apenas no cadastro (se necessário)
-            const mcduNumero = parseInt(fila);
-            await this.cadastrarSuporte(login.id_usuario, date, hora, mcduNumero, telefone, uniqueId);
-            const id_suporte = await this.obterIdSuporte(login.id_usuario, date, hora, mcduNumero, telefone, uniqueId);
+            await this.cadastrarSuporte(login.id_usuario,date, hora, mcdu, dados.telefone, dados.uniqueId);
+            const id_suporte = await this.obterIdSuporte(login.id_usuario,date, hora, mcdu, dados.telefone, dados.uniqueId);
             return id_suporte;
         } catch (e) {
             console.error('Erro na autenticação:', e);
             throw e;
-        }
+        } 
     }
     public static async cancelar(idCancelamento:number): Promise<any> {
         const client = await pool.connect();
