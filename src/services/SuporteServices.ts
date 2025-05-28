@@ -63,33 +63,58 @@ export class SuporteServices {
     public static async solicitar(matricula: number, fila: string, date: string, hora: string): Promise<any> {
         try {
             const login = await this.consultaMatricula(matricula);
-            const todasFilas = await FilasService.filasGerais();
-            
-            // Busca a fila usando o mcdu (string)
-            const filaInfo = todasFilas.find((f: FilaInfo) => f.mcdu === fila);
-            
+            const todasFilas: FilaInfo[] = await FilasService.filasGerais();
+
+            // Garante que o mcdu da fila recebida seja tratado como string (mesmo que venha como número)
+            const mcduRecebido = fila.toString(); 
+
+            // Busca a fila correspondente no banco (comparando strings)
+            const filaInfo = todasFilas.find((f: FilaInfo) => f.mcdu === mcduRecebido);
+
+            if (!filaInfo) {
+                throw new Error('Fila não encontrada no banco de dados');
+            }
+
             let telefone: string;
             let uniqueId: string;
 
-            if (filaInfo?.segmento === 'WHATSAPP') {
-                telefone = '55999999999'; // Telefone padrão para WHATSAPP
+            // Verifica se é WHATSAPP (case insensitive)
+            if (filaInfo.segmento?.toUpperCase() === 'WHATSAPP') {
+                telefone = '55999999999'; // Telefone padrão
                 uniqueId = `WHATSAPP-${Date.now()}`; // ID único
             } else {
                 const dados = await RequestsSuport.main(login.login);
                 if (!dados) {
-                    throw new Error('Erro em localizar os dados na request 2cx');
+                    throw new Error('Erro ao obter dados da request 2cx');
                 }
                 telefone = dados.telefone;
                 uniqueId = dados.uniqueId;
             }
 
-            // Converte mcdu para número apenas no cadastro (se necessário)
-            const mcduNumero = parseInt(fila);
-            await this.cadastrarSuporte(login.id_usuario, date, hora, mcduNumero, telefone, uniqueId);
-            const id_suporte = await this.obterIdSuporte(login.id_usuario, date, hora, mcduNumero, telefone, uniqueId);
+            // Converte mcdu para número (caso a tabela exija)
+            const mcduNumero = parseInt(mcduRecebido, 10);
+            
+            await this.cadastrarSuporte(
+                login.id_usuario,
+                date,
+                hora,
+                mcduNumero,
+                telefone,
+                uniqueId
+            );
+
+            const id_suporte = await this.obterIdSuporte(
+                login.id_usuario,
+                date,
+                hora,
+                mcduNumero,
+                telefone,
+                uniqueId
+            );
+
             return id_suporte;
         } catch (e) {
-            console.error('Erro na autenticação:', e);
+            console.error('Erro na solicitação de suporte:', e);
             throw e;
         }
     }
