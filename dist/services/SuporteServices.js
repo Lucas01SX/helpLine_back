@@ -78,6 +78,7 @@ class SuporteServices {
     static solicitar(matricula, fila, date, hora) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
+                const mcdu = parseInt(fila);
                 const login = yield this.consultaMatricula(matricula);
                 const todasFilas = yield FilasServices_1.FilasService.filasGerais();
                 // Busca a fila usando o mcdu (string)
@@ -103,7 +104,7 @@ class SuporteServices {
                 return id_suporte;
             }
             catch (e) {
-                console.error('Erro na autenticação:', e);
+                console.error('Erro na solicitação de suporte:', e);
                 throw e;
             }
         });
