@@ -88,20 +88,103 @@ export class GestaoAcessoService {
             client.release();
         }
     }
-    private static async validarFilas(matricula:number, login:string,  filas:string, mcdu:string, segmentos:string, situacao:string, mat_responsavel:string) : Promise<any> {
+    private static async obterFilasAtuais(matricula: number): Promise<Array<{fila: string, mcdu: string}>> {
+        try {
+            const res = await pool.query(`
+                SELECT fila, mcdu 
+                FROM suporte.tb_skills_staff 
+                WHERE matricula = $1 
+                AND excluida = false
+            `, [matricula]);
+            
+            return res.rows.map(row => ({
+                fila: row.fila,
+                mcdu: row.mcdu
+            }));
+        } catch (e) {
+            console.error('Erro ao obter filas atuais:', e);
+            throw e;
+        }
+    }
+    private static async atualizarStatusFila(matricula: number, fila: string, mcdu: string, excluida: boolean, mat_responsavel: string): Promise<void> {
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            await client.query(`
+                UPDATE suporte.tb_skills_staff 
+                SET excluida = $1, 
+                    matricula_alteracao = $2,
+                    data_alteracao = current_timestamp
+                WHERE matricula = $3 
+                AND fila = $4 
+                AND mcdu = $5
+            `, [excluida, mat_responsavel, matricula, fila, mcdu]);
+            await client.query('COMMIT');
+        } catch (e) {
+            await client.query('ROLLBACK');
+            console.error('Erro na atualização da fila:', e);
+            throw e;
+        } finally {
+            client.release();
+        }
+    }
+
+    private static async verificarFilaExistente(matricula: number, fila: string, mcdu: string): Promise<{exists: boolean, excluida: boolean}> {
+        try {
+            const res = await pool.query(`
+                SELECT excluida 
+                FROM suporte.tb_skills_staff 
+                WHERE matricula = $1 
+                AND fila = $2 
+                AND mcdu = $3
+            `, [matricula, fila, mcdu]);
+            
+            if (res.rows.length === 0) {
+                return {exists: false, excluida: false};
+            }
+            return {exists: true, excluida: res.rows[0].excluida};
+        } catch (e) {
+            console.error('Erro na verificação da fila:', e);
+            throw e;
+        }
+    }
+    private static async validarFilas(matricula: number, login: string, filas: string, mcdu: string, segmentos: string, situacao: string, mat_responsavel: string): Promise<any> {
         try {   
             const filaComMcdu = filas.split(',').map((fila, index) => ({
                 fila: fila.trim(),
                 mcdu: mcdu.split(',')[index].trim()
             }));
 
-            await Promise.all(filaComMcdu.map(async(item) => {
-                if(situacao === 'cadastro') {
+            if (situacao === 'cadastro') {
+                await Promise.all(filaComMcdu.map(async (item) => {
                     await this.cadastrarFilas(matricula, login, item.fila, item.mcdu, mat_responsavel);
-                }
-            }))
+                }));
+            } else if (situacao === 'ajuste') {
+                // Usando a nova função para obter filas atuais
+                const filasAtuais = await this.obterFilasAtuais(matricula);
+
+                await Promise.all(filaComMcdu.map(async (item) => {
+                    const {exists, excluida} = await this.verificarFilaExistente(matricula, item.fila, item.mcdu);
+                    
+                    if (!exists) {
+                        await this.cadastrarFilas(matricula, login, item.fila, item.mcdu, mat_responsavel);
+                    } else if (excluida) {
+                        await this.atualizarStatusFila(matricula, item.fila, item.mcdu, false, mat_responsavel);
+                    }
+                }));
+
+                const filasParaRemover = filasAtuais.filter(filaAtual => 
+                    !filaComMcdu.some(item => 
+                        item.fila === filaAtual.fila && item.mcdu === filaAtual.mcdu
+                    )
+                );
+
+                await Promise.all(filasParaRemover.map(async (item) => {
+                    await this.atualizarStatusFila(matricula, item.fila, item.mcdu, true, mat_responsavel);
+                }));
+            }
         } catch (e) {
-            console.error('Erro na autenticação:', e);
+            console.error('Erro no processamento das filas:', e);
             throw e;
         }
     }
