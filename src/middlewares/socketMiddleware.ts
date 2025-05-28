@@ -4,6 +4,7 @@ import { userRoute } from '../routes/userRoutes';
 import { tokenRoutes } from '../routes/TokenRoutes';
 import { dashboardRoutes } from '../routes/DashboardRoutes';
 import { relatorioRoutes } from '../routes/RelatorioRoutes';
+import { routeGestao } from '../routes/GestaoAcessoRoutes';
 
 export const socketMiddleware = (routeName: string) => {
     return (data: any, callback: (result: any) => void) => {
@@ -17,7 +18,7 @@ export const socketMiddleware = (routeName: string) => {
                 }
             })
         } as Response;
-        const routeHandler = routeMap[routeName] || userRoute[routeName] || tokenRoutes[routeName] || dashboardRoutes[routeName] || relatorioRoutes[routeName];
+        const routeHandler = routeMap[routeName] || userRoute[routeName] || tokenRoutes[routeName] || dashboardRoutes[routeName] || relatorioRoutes[routeName] || routeGestao[routeName];
         if (routeHandler) {
             routeHandler(req, res);
         } else {

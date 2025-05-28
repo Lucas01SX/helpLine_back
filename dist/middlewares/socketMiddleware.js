@@ -6,6 +6,7 @@ const userRoutes_1 = require("../routes/userRoutes");
 const TokenRoutes_1 = require("../routes/TokenRoutes");
 const DashboardRoutes_1 = require("../routes/DashboardRoutes");
 const RelatorioRoutes_1 = require("../routes/RelatorioRoutes");
+const GestaoAcessoRoutes_1 = require("../routes/GestaoAcessoRoutes");
 const socketMiddleware = (routeName) => {
     return (data, callback) => {
         const req = { body: Object.assign({}, data) };
@@ -18,7 +19,7 @@ const socketMiddleware = (routeName) => {
                 }
             })
         };
-        const routeHandler = SuporteRoutes_1.routeMap[routeName] || userRoutes_1.userRoute[routeName] || TokenRoutes_1.tokenRoutes[routeName] || DashboardRoutes_1.dashboardRoutes[routeName] || RelatorioRoutes_1.relatorioRoutes[routeName];
+        const routeHandler = SuporteRoutes_1.routeMap[routeName] || userRoutes_1.userRoute[routeName] || TokenRoutes_1.tokenRoutes[routeName] || DashboardRoutes_1.dashboardRoutes[routeName] || RelatorioRoutes_1.relatorioRoutes[routeName] || GestaoAcessoRoutes_1.routeGestao[routeName];
         if (routeHandler) {
             routeHandler(req, res);
         }
