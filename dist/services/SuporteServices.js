@@ -80,16 +80,17 @@ class SuporteServices {
             try {
                 const mcdu = parseInt(fila);
                 const login = yield this.consultaMatricula(matricula);
-                const todasFilas = yield FilasServices_1.FilasService.filasGerais();
-                // Busca a fila usando o mcdu (string)
-                const filaInfo = todasFilas.find((f) => f.mcdu === fila);
-                let telefone;
-                let uniqueId;
-                if ((filaInfo === null || filaInfo === void 0 ? void 0 : filaInfo.segmento) === 'WHATSAPP') {
-                    telefone = '55999999999'; // Telefone padrão para WHATSAPP
-                    uniqueId = `WHATSAPP-${Date.now()}`; // ID único
-                }
-                else {
+                // Obter todas as filas de WhatsApp
+                const filasWhatsapp = yield FilasServices_1.FilasService.filasGerais();
+                const whatsappMcduList = filasWhatsapp
+                    .filter((f) => f.segmento === 'WHATSAPP')
+                    .map((f) => parseInt(f.mcdu));
+                // Verificar se o mcdu atual é uma fila de WhatsApp
+                const isWhatsapp = whatsappMcduList.includes(mcdu);
+                let telefone = '';
+                let uniqueId = '';
+                if (!isWhatsapp) {
+                    // Fluxo normal com request
                     const dados = yield RequestSuporte_1.RequestsSuport.main(login.login);
                     if (!dados) {
                         throw new Error('Erro em localizar os dados na request 2cx');
@@ -97,14 +98,17 @@ class SuporteServices {
                     telefone = dados.telefone;
                     uniqueId = dados.uniqueId;
                 }
-                // Converte mcdu para número apenas no cadastro (se necessário)
-                const mcduNumero = parseInt(fila);
-                yield this.cadastrarSuporte(login.id_usuario, date, hora, mcduNumero, telefone, uniqueId);
-                const id_suporte = yield this.obterIdSuporte(login.id_usuario, date, hora, mcduNumero, telefone, uniqueId);
+                else {
+                    // Fluxo WhatsApp - valores padrão
+                    telefone = 'WHATSAPP';
+                    uniqueId = 'WHATSAPP_' + Date.now().toString();
+                }
+                yield this.cadastrarSuporte(login.id_usuario, date, hora, mcdu, telefone, uniqueId);
+                const id_suporte = yield this.obterIdSuporte(login.id_usuario, date, hora, mcdu, telefone, uniqueId);
                 return id_suporte;
             }
             catch (e) {
-                console.error('Erro na solicitação de suporte:', e);
+                console.error('Erro na autenticação:', e);
                 throw e;
             }
         });
