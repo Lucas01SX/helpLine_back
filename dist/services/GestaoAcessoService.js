@@ -31,7 +31,7 @@ class GestaoAcessoService {
     static perfisAcesso() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const res = yield db_1.default.query(`select a.id_usuario, a.matricula, a.login, a.nome, f.de_funcao, string_agg(ane.segmento,',') segmentos, string_agg(t.fila, ',') filas, string_agg(t.mcdu, ',') mcdu from suporte.tb_login_suporte a left join trafego.tb_funcao f on f.co_funcao::int = a.codfuncao::int left join suporte.tb_skills_staff t on a.matricula = t.matricula::int left join trafego.tb_anexo1g ane on t.mcdu::int = ane.mcdu group by a.id_usuario, a.matricula, a.login, a.nome, f.de_funcao`);
+                const res = yield db_1.default.query(`select a.id_usuario, a.matricula, a.login, a.nome, f.de_funcao, string_agg(ane.segmento,',') segmentos, string_agg(t.fila, ',') filas, string_agg(t.mcdu, ',') mcdu from suporte.tb_login_suporte a left join trafego.tb_funcao f on f.co_funcao::int = a.codfuncao::int left join suporte.tb_skills_staff t on a.matricula = t.matricula::int and t.excluida <> true left join trafego.tb_anexo1g ane on t.mcdu::int = ane.mcdu group by a.id_usuario, a.matricula, a.login, a.nome, f.de_funcao`);
                 const perfis = res.rows;
                 return perfis;
             }
