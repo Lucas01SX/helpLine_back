@@ -107,5 +107,53 @@ class GestaoAcessoService {
             }
         });
     }
+    static cadastrarFilas(matricula, login, filas, mcdu, mat_responsavel) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const client = yield db_1.default.connect();
+            try {
+                yield client.query('BEGIN');
+                yield client.query(`INSERT INTO suporte.tb_skills_staff (matricula, login, fila, mcdu,  data_treinamento, matricula_registro, status, observacao, data_alteracao, excluida, prioridade) VALUES($1, $2, $3, $4, current_date, $5, true, 'Inclusão de fila pelo HelpLine', current_timestamp, false, 1) `, [matricula, login, filas, mcdu, mat_responsavel]);
+                yield client.query('COMMIT');
+            }
+            catch (e) {
+                yield client.query('ROLLBACK');
+                console.error('Erro no cadastro das Filas:', e);
+                throw e;
+            }
+            finally {
+                client.release();
+            }
+        });
+    }
+    static validarFilas(matricula, login, filas, mcdu, segmentos, situacao, mat_responsavel) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const filaComMcdu = filas.split(',').map((fila, index) => ({
+                    fila: fila.trim(),
+                    mcdu: mcdu.split(',')[index].trim()
+                }));
+                yield Promise.all(filaComMcdu.map((item) => __awaiter(this, void 0, void 0, function* () {
+                    if (situacao === 'cadastro') {
+                        yield this.cadastrarFilas(matricula, login, item.fila, item.mcdu, mat_responsavel);
+                    }
+                })));
+            }
+            catch (e) {
+                console.error('Erro na autenticação:', e);
+                throw e;
+            }
+        });
+    }
+    static atualizarFila(idUsuario, matricula, login, nome, filas, mcdu, segmentos, situacao, mat_responsavel) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield this.validarFilas(matricula, login, filas, mcdu, segmentos, situacao, mat_responsavel);
+            }
+            catch (e) {
+                console.error('Erro na autenticação:', e);
+                throw e;
+            }
+        });
+    }
 }
 exports.GestaoAcessoService = GestaoAcessoService;

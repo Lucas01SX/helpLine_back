@@ -197,6 +197,11 @@ io.on('connection', (socket) => {
             callback(result);
         });
     });
+    socket.on('atualizar_filas', (data, callback) => {
+        (0, socketMiddleware_1.socketMiddleware)('atualizarFilas')(data, (result) => {
+            callback(result);
+        });
+    });
     socket.on('disconnect', () => {
         //
     });

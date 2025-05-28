@@ -13,5 +13,6 @@ const routeGestao = {
     cargos: (req, res) => gestaoAcesso.cargosGerais(req, res),
     perfis: (req, res) => gestaoAcesso.PerfisGerais(req, res),
     atualizarPerfil: (req, res) => gestaoAcesso.atualizarPerfil(req, res),
+    atualizarFilas: (req, res) => gestaoAcesso.atualizarFilas(req, res),
 };
 exports.routeGestao = routeGestao;

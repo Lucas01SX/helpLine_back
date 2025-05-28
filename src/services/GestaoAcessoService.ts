@@ -74,4 +74,43 @@ export class GestaoAcessoService {
             throw e;
         }
     }
+    private static async cadastrarFilas(matricula:number, login:string,  filas:string, mcdu:string, mat_responsavel:string): Promise<void> {
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            await client.query(`INSERT INTO suporte.tb_skills_staff (matricula, login, fila, mcdu,  data_treinamento, matricula_registro, status, observacao, data_alteracao, excluida, prioridade) VALUES($1, $2, $3, $4, current_date, $5, true, 'Inclusão de fila pelo HelpLine', current_timestamp, false, 1) `, [matricula, login, filas, mcdu, mat_responsavel]);
+            await client.query('COMMIT');
+        } catch (e) {
+            await client.query('ROLLBACK');
+            console.error('Erro no cadastro das Filas:', e);
+            throw e;
+        }finally {
+            client.release();
+        }
+    }
+    private static async validarFilas(matricula:number, login:string,  filas:string, mcdu:string, segmentos:string, situacao:string, mat_responsavel:string) : Promise<any> {
+        try {   
+            const filaComMcdu = filas.split(',').map((fila, index) => ({
+                fila: fila.trim(),
+                mcdu: mcdu.split(',')[index].trim()
+            }));
+
+            await Promise.all(filaComMcdu.map(async(item) => {
+                if(situacao === 'cadastro') {
+                    await this.cadastrarFilas(matricula, login, item.fila, item.mcdu, mat_responsavel);
+                }
+            }))
+        } catch (e) {
+            console.error('Erro na autenticação:', e);
+            throw e;
+        }
+    }
+    public static async atualizarFila(idUsuario:number, matricula:number, login:string, nome:string, filas:string, mcdu:string, segmentos:string, situacao:string, mat_responsavel:string): Promise<void> {
+        try {   
+            await this.validarFilas(matricula, login, filas, mcdu, segmentos, situacao, mat_responsavel);
+        } catch (e) {
+            console.error('Erro na autenticação:', e);
+            throw e;
+        }
+    }
 }

@@ -39,4 +39,17 @@ export class GestaoAcessoController {
             }
         }
     }
+    public async atualizarFilas(req:Request, res:Response): Promise<void> {
+        try {  
+            const { idUsuario, matricula, login, nome, filas, mcdu, segmentos, situacao, mat_responsavel } = req.body;
+            await GestaoAcessoService.atualizarFila(idUsuario, matricula, login, nome, filas, mcdu, segmentos, situacao, mat_responsavel);
+            res.status(200).json({ message: 'success' });            
+        } catch (error) {
+            if (error instanceof Error) {
+                res.status(400).json({ message: error.message }); 
+            } else {
+                res.status(500).json({ message: 'Erro desconhecido na controller', error });
+            }
+        }
+    }
 }

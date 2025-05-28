@@ -61,5 +61,22 @@ class GestaoAcessoController {
             }
         });
     }
+    atualizarFilas(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { idUsuario, matricula, login, nome, filas, mcdu, segmentos, situacao, mat_responsavel } = req.body;
+                yield GestaoAcessoService_1.GestaoAcessoService.atualizarFila(idUsuario, matricula, login, nome, filas, mcdu, segmentos, situacao, mat_responsavel);
+                res.status(200).json({ message: 'success' });
+            }
+            catch (error) {
+                if (error instanceof Error) {
+                    res.status(400).json({ message: error.message });
+                }
+                else {
+                    res.status(500).json({ message: 'Erro desconhecido na controller', error });
+                }
+            }
+        });
+    }
 }
 exports.GestaoAcessoController = GestaoAcessoController;
