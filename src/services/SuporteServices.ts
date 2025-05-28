@@ -3,6 +3,7 @@ import pool from '../database/db';
 import { RequestsSuport } from './RequestSuporte';
 import { getCachedData  } from './cacheService';
 import { CachedData } from '../models/Cache';
+import { FilasService } from "./FilasService";
 
 
 export class SuporteServices {
@@ -57,12 +58,31 @@ export class SuporteServices {
         try {
             const mcdu = parseInt(fila);
             const login = await this.consultaMatricula(matricula);
-            const dados = await RequestsSuport.main(login.login);
-            if (!dados) {
-                throw new Error('Erro em localizar os dados na request 2cx');
+            
+            // Obter todas as filas para verificar o segmento
+            const todasFilas = await FilasService.filasGerais();
+            const filaInfo = todasFilas.find(f => f.mcdu === mcdu.toString());
+            
+            let telefone: string;
+            let uniqueId: string;
+
+            // Verificar se é WHATSAPP
+            if (filaInfo && filaInfo.segmento === 'WHATSAPP') {
+                // Valores padrão para WHATSAPP
+                telefone = '55999999999'; // Substitua pelo telefone padrão desejado
+                uniqueId = `WHATSAPP-${Date.now()}`; // ID único para WHATSAPP
+            } else {
+                // Proceder com a lógica normal para outras filas
+                const dados = await RequestsSuport.main(login.login);
+                if (!dados) {
+                    throw new Error('Erro em localizar os dados na request 2cx');
+                }
+                telefone = dados.telefone;
+                uniqueId = dados.uniqueId;
             }
-            await this.cadastrarSuporte(login.id_usuario,date, hora, mcdu, dados.telefone, dados.uniqueId);
-            const id_suporte = await this.obterIdSuporte(login.id_usuario,date, hora, mcdu, dados.telefone, dados.uniqueId);
+
+            await this.cadastrarSuporte(login.id_usuario, date, hora, mcdu, telefone, uniqueId);
+            const id_suporte = await this.obterIdSuporte(login.id_usuario, date, hora, mcdu, telefone, uniqueId);
             return id_suporte;
         } catch (e) {
             console.error('Erro na autenticação:', e);
