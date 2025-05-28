@@ -149,45 +149,66 @@ export class GestaoAcessoService {
         }
     }
     private static async validarFilas(matricula: number, login: string, filas: string, mcdu: string, segmentos: string, situacao: string, mat_responsavel: string): Promise<any> {
-        try {   
-            const filaComMcdu = filas.split(',').map((fila, index) => ({
-                fila: fila.trim(),
-                mcdu: mcdu.split(',')[index].trim()
-            }));
-
-            if (situacao === 'cadastro') {
-                await Promise.all(filaComMcdu.map(async (item) => {
-                    await this.cadastrarFilas(matricula, login, item.fila, item.mcdu, mat_responsavel);
-                }));
-            } else if (situacao === 'ajuste') {
-                // Usando a nova função para obter filas atuais
+    try {   
+        // Verifica se filas e mcdu estão vazios ou contêm apenas espaços/vírgulas
+        const filasVazias = !filas || filas.trim() === '' || filas.trim() === ',';
+        const mcduVazios = !mcdu || mcdu.trim() === '' || mcdu.trim() === ',';
+        
+        // Se ambos estiverem vazios, apenas remove as filas existentes (para situação de ajuste)
+        if (filasVazias && mcduVazios) {
+            if (situacao === 'ajuste') {
                 const filasAtuais = await this.obterFilasAtuais(matricula);
-
-                await Promise.all(filaComMcdu.map(async (item) => {
-                    const {exists, excluida} = await this.verificarFilaExistente(matricula, item.fila, item.mcdu);
-                    
-                    if (!exists) {
-                        await this.cadastrarFilas(matricula, login, item.fila, item.mcdu, mat_responsavel);
-                    } else if (excluida) {
-                        await this.atualizarStatusFila(matricula, item.fila, item.mcdu, false, mat_responsavel);
-                    }
-                }));
-
-                const filasParaRemover = filasAtuais.filter(filaAtual => 
-                    !filaComMcdu.some(item => 
-                        item.fila === filaAtual.fila && item.mcdu === filaAtual.mcdu
-                    )
-                );
-
-                await Promise.all(filasParaRemover.map(async (item) => {
+                await Promise.all(filasAtuais.map(async (item) => {
                     await this.atualizarStatusFila(matricula, item.fila, item.mcdu, true, mat_responsavel);
                 }));
             }
-        } catch (e) {
-            console.error('Erro no processamento das filas:', e);
-            throw e;
+            return; // Não faz nada para cadastro ou se não houver filas para remover
         }
+
+        // Processamento normal quando há filas e mcdu válidos
+        const filaComMcdu = filas.split(',')
+            .map((fila, index) => ({
+                fila: fila.trim(),
+                mcdu: mcdu.split(',')[index]?.trim() || '' // Proteção contra undefined
+            }))
+            .filter(item => item.fila && item.mcdu); // Filtra apenas itens válidos
+
+        if (filaComMcdu.length === 0) {
+            return; // Não processa se não houver itens válidos
+        }
+
+        if (situacao === 'cadastro') {
+            await Promise.all(filaComMcdu.map(async (item) => {
+                await this.cadastrarFilas(matricula, login, item.fila, item.mcdu, mat_responsavel);
+            }));
+        } else if (situacao === 'ajuste') {
+            const filasAtuais = await this.obterFilasAtuais(matricula);
+
+            await Promise.all(filaComMcdu.map(async (item) => {
+                const {exists, excluida} = await this.verificarFilaExistente(matricula, item.fila, item.mcdu);
+                
+                if (!exists) {
+                    await this.cadastrarFilas(matricula, login, item.fila, item.mcdu, mat_responsavel);
+                } else if (excluida) {
+                    await this.atualizarStatusFila(matricula, item.fila, item.mcdu, false, mat_responsavel);
+                }
+            }));
+
+            const filasParaRemover = filasAtuais.filter(filaAtual => 
+                !filaComMcdu.some(item => 
+                    item.fila === filaAtual.fila && item.mcdu === filaAtual.mcdu
+                )
+            );
+
+            await Promise.all(filasParaRemover.map(async (item) => {
+                await this.atualizarStatusFila(matricula, item.fila, item.mcdu, true, mat_responsavel);
+            }));
+        }
+    } catch (e) {
+        console.error('Erro no processamento das filas:', e);
+        throw e;
     }
+}
     public static async atualizarFila(idUsuario:number, matricula:number, login:string, nome:string, filas:string, mcdu:string, segmentos:string, situacao:string, mat_responsavel:string): Promise<void> {
         try {   
             await this.validarFilas(matricula, login, filas, mcdu, segmentos, situacao, mat_responsavel);
