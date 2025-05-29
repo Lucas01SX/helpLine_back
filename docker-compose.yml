@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "9002:3000" # Porta externa 9002 mapeada para a aplicação no container
+      - "9004:3000" # Porta externa 9002 mapeada para a aplicação no container
     volumes:
       - .:/app
       - /app/node_modules
